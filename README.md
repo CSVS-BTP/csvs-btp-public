@@ -1,16 +1,5 @@
 # csvs-btp-public
-For IISC competition phase 1
-
-# Create venv
-python3 -m venv venv
-
-# Activate venv
-source venv/bin/activate
-
-# Install requirements.txt
-pip install -r requirements.txt
-
-# Run
-python3 app.py <video_file> <csv_file>"
-##Example:
-python3 app.py Stn_HD_1_time_2024-05-18T07:30:02_004.mp4 counts.csv
+# run this on terminal
+# expects video present on a folder named output
+# creates results in output
+docker run -it --rm=true -v ./:/app/csvs-btp-public/output/  --runtime=nvidia --gpus all vishaksagar/csvs:v3 python3 app.py output/myfile.mp4 output/counts.csv
