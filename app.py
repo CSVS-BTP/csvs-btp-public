@@ -16,7 +16,7 @@ def main():
     print(f"CSV file: {csv_file}")
     print("Processing started")
 
-    detect_vehicles(video_file)
+    detect_vehicles(video_file, csv_file)
 
 if __name__ == "__main__":
     main()

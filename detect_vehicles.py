@@ -101,7 +101,7 @@ def create_distance_map(columns):
                 dist_map[col1 + col2] = dist
     return dist_map
 
-def detect_vehicles(video_file, csv_file):
+def detect_vehicles(video_file, csv_file='counts.csv'):
     results = model(
         source=video_file,
         conf=conf,
