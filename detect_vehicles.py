@@ -70,8 +70,8 @@ def apply_column_overrides(df, column_pairs, dist_map, dist_mapr):
                 # Check if destination columns have True values
                 if row[dst_col[0]] and row[dst_col[1]]:
                     # Determine which destination column to override based on distance
-                    min_dist = min(dist_map[src_col+dst_col[0]], dist_map[src_col+dst_col[1]])
-                    dst_col_to_set = dist_mapr[min_dist][-1]
+                    max_dist = max(dist_map[src_col+dst_col[0]], dist_map[src_col+dst_col[1]])
+                    dst_col_to_set = dist_mapr[max_dist][-1]
                     # Apply the override rules
                     row[dst_col_to_set] = False
         
