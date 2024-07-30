@@ -63,30 +63,18 @@ rectangles_dict = {
 def apply_column_overrides(df, column_pairs, dist_map, dist_mapr):
     df_copy = df.copy()
     for _, row in df_copy.iterrows():
-        flag = False
         for idx in range(len(column_pairs)):
             src_col, dst_col = column_pairs[idx]
             # Check if source column has True value
             if row[src_col]:
-                flag = True
                 # Check if destination columns have True values
                 if row[dst_col[0]] and row[dst_col[1]]:
                     # Determine which destination column to override based on distance
-                    max_dist = max(
-                        dist_map[src_col + dst_col[0]],
-                        dist_map[src_col + dst_col[1]],
-                    )
-                    dst_col_to_set = dist_mapr[max_dist]
+                    min_dist = min(dist_map[src_col+dst_col[0]], dist_map[src_col+dst_col[1]])
+                    dst_col_to_set = dist_mapr[min_dist][-1]
                     # Apply the override rules
-                    row[:] = False
-                    row[src_col] = True
-                    row[dst_col_to_set] = True
-        if row.sum() > 2:
-            row[:] = False
-            if flag:
-                row[src_col] = True
-                row[dst_col_to_set] = True
-
+                    row[dst_col_to_set] = False
+        
     return df_copy
 
 # Create ordinal difference mapping
