@@ -272,4 +272,5 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
 
     f_df = t_df.copy().rename(columns={"vehicle": "Turning Patterns"})
     f_df = f_df.set_index("Turning Patterns").T
-    f_df.to_csv(csv_file)
+    f_df = f_df.fillna(0).astype(int).reset_index()_
+    f_df.to_csv(csv_file, index=False)
