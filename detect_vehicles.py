@@ -1,5 +1,5 @@
 import torch
-from ultralytics import YOLO
+from ultralytics import YOLOWorld
 import pandas as pd
 import numpy as np
 
@@ -12,6 +12,20 @@ if torch.cuda.is_available():
 else:
     print("GPU is not available")
     device = torch.device("cpu")
+
+# Load a pretrained YOLOv8s-worldv2 model
+model = YOLOWorld("yolov8s-worldv2.pt")
+
+vehicle_list = [
+    'vehicle/Car',
+    'vehicle/Bus',
+    'vehicle/Truck',
+    'vehicle/Three Wheeler',
+    'vehicle/Motorbike',
+    'vehicle/Light Commercial Vehicle',
+    'vehicle/Bicycle'
+]
+model.set_classes(vehicle_list)
 
 # Define vehicle class map and IDs
 vehicle_class_rmap = {
@@ -30,7 +44,6 @@ agnostic_nms = True
 vid_stride=1
 stream=True
 verbose=False 
-model = YOLO("yolov8s-worldv2_openvino_model/", task="detect")
 
 rectangles_dict = {
     "a": {"tl": {"x": 0, "y": 500}, "br": {"x": 1020, "y": 1080}},
@@ -44,24 +57,17 @@ rectangles_dict = {
 def apply_column_overrides(df, column_pairs, dist_map, dist_mapr):
     df_copy = df.copy()
     for _, row in df_copy.iterrows():
-        flag = False
         for idx in range(len(column_pairs)):
             src_col, dst_col = column_pairs[idx]
             # Check if source column has True value
             if row[src_col]:
                 # Check if destination columns have True values
                 if row[dst_col[0]] and row[dst_col[1]]:
-                    flag = True
                     # Determine which destination column to override based on distance
                     max_dist = max(dist_map[src_col+dst_col[0]], dist_map[src_col+dst_col[1]])
                     dst_col_to_set = dist_mapr[max_dist][-1]
                     # Apply the override rules
                     row[dst_col_to_set] = False
-        if row.sum() > 2:
-            row[:] = False
-            if flag:
-                row[src_col] = True
-                row[dst_col_to_set] = True
     return df_copy
 
 # Create ordinal difference mapping
@@ -117,7 +123,7 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
     features_tensor = torch.tensor(np.stack(idf["features"].values)).to(device)
 
     # Initialize variables
-    thresh = 500
+    thresh = 80
     n_features = features_tensor.shape[1]
     vdf = torch.empty((0, n_features), dtype=torch.float32).to(device)
     count_dict = {}
@@ -209,7 +215,11 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
 
 
     # Define column pairs for overriding (Update column pairs according to rules)
-    src_dst_pairs = [("b", ("c", "e")), ("d", ("e", "a")), ("f", ("a", "c"))]
+    src_dst_pairs = [
+        ("b", ("c", "e")), 
+        ("d", ("e", "a")), 
+        ("f", ("a", "c"))
+        ]
 
     r_df = apply_column_overrides(tr_df, src_dst_pairs, dist_map, dist_mapr)
     vtype_df = pd.merge(
@@ -229,7 +239,7 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
     # Initialize a dictionary to hold the counts of each combination
     combination_counts = {pair: 0 for pair in column_pairs}
 
-    t_df = pd.DataFrame(vehicle_class_rmap.keys(), columns=["vehicle"])
+    t_df = pd.DataFrame(vehicle_class_rmap.values(), columns=["vehicle"])
     for vehicle in r_df["vehicle"].unique():
         tv_df = r_df.loc[r_df["vehicle"] == vehicle]
         # Iterate through each pair and count how many times both columns are True
