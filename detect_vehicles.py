@@ -1,6 +1,4 @@
 import torch
-from torchvision import transforms
-from torchvision.models import resnet18
 from ultralytics import YOLO
 import pandas as pd
 import numpy as np
@@ -16,41 +14,24 @@ else:
     device = torch.device("cpu")
 
 # Define vehicle class map and IDs
-## We currently don't have LCV and Three-Wheeler
-vehicle_class_map = {1: "Bicycle", 2: "Car", 3: "Two-Wheeler", 5: "Bus", 7: "Truck"}
-vehicle_class_ids = list(vehicle_class_map.keys())
 vehicle_class_rmap = {
-    "Car": 2,
-    "Bus": 5,
-    "Truck": 7,
-    "Three-Wheeler": 4,
-    "Two-Wheeler": 5,
-    "LCV": 6,
-    "Bicycle": 1,
+    0:'Car',
+    1:'Bus',
+    2:'Truck',
+    3:'Three-Wheeler',
+    4:'Two-Wheeler',
+    5:'LCV',
+    6:'Bicycle'
 }
 
-model = YOLO("yolov10n.pt")
-conf = 0.7
+conf = 0.25
+iou = 0.5
+agnostic_nms = True
+vid_stride=1
+stream=True
+verbose=False 
+model = YOLO("yolov8s-worldv2_openvino_model/", task="detect")
 
-# Load a pre-trained ResNet18 model
-feature_extractor = resnet18(weights="ResNet18_Weights.IMAGENET1K_V1")
-# Remove the final classification layer
-feature_extractor.classifier = torch.nn.Identity()
-feature_extractor.eval()
-feature_extractor.to(device)
-
-# Define image transformation
-preprocess = transforms.Compose(
-    [
-        transforms.ToPILImage(),
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ]
-)
-
-# High overlap
 rectangles_dict = {
     "a": {"tl": {"x": 0, "y": 500}, "br": {"x": 1020, "y": 1080}},
     "b": {"tl": {"x": 0, "y": 150}, "br": {"x": 1020, "y": 500}},
@@ -63,18 +44,24 @@ rectangles_dict = {
 def apply_column_overrides(df, column_pairs, dist_map, dist_mapr):
     df_copy = df.copy()
     for _, row in df_copy.iterrows():
+        flag = False
         for idx in range(len(column_pairs)):
             src_col, dst_col = column_pairs[idx]
             # Check if source column has True value
             if row[src_col]:
                 # Check if destination columns have True values
                 if row[dst_col[0]] and row[dst_col[1]]:
+                    flag = True
                     # Determine which destination column to override based on distance
                     max_dist = max(dist_map[src_col+dst_col[0]], dist_map[src_col+dst_col[1]])
                     dst_col_to_set = dist_mapr[max_dist][-1]
                     # Apply the override rules
                     row[dst_col_to_set] = False
-        
+        if row.sum() > 2:
+            row[:] = False
+            if flag:
+                row[src_col] = True
+                row[dst_col_to_set] = True
     return df_copy
 
 # Create ordinal difference mapping
@@ -94,43 +81,28 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
         source=video_file,
         conf=conf,
         device=device,
-        classes=vehicle_class_ids,
-        vid_stride=1,
-        stream=True,
-        verbose=False,
+        vid_stride=vid_stride,
+        stream=stream,
+        verbose=verbose,
     )
 
     ob_id = 0
     instance_dict = {}
 
     for fn, result in enumerate(results):
-        frame = result.orig_img
         boxes = result.boxes
-        names = result.names
 
-        # tic = time.time()
         for ob in range(boxes.shape[0]):
             cls_id = int(boxes.cls[ob].item())
-            if cls_id not in vehicle_class_ids:
-                continue
+            features = boxes.data[ob].cpu()
 
             x1, y1, x2, y2 = map(int, boxes.xyxy[ob])
             top_left = {"x": x1, "y": y1}
             bottom_right = {"x": x2, "y": y2}
 
-            ob_crop = frame[y1:y2, x1:x2]
-            if ob_crop.size == 0:
-                continue
-
-            # Apply image transformations and extract features
-            roi = preprocess(ob_crop).unsqueeze(0).to(device)
-            with torch.no_grad():
-                features = feature_extractor(roi).squeeze().cpu()
-                # features = feature_extractor(roi).squeeze().cpu().numpy()
-
             features_dict = {
                 "fn": fn,
-                "name": vehicle_class_map[cls_id],
+                "name": vehicle_class_rmap[cls_id],
                 "cls_id": cls_id,
                 "features": features,
                 "tl": top_left,
@@ -145,7 +117,7 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
     features_tensor = torch.tensor(np.stack(idf["features"].values)).to(device)
 
     # Initialize variables
-    thresh = 50.0
+    thresh = 500
     n_features = features_tensor.shape[1]
     vdf = torch.empty((0, n_features), dtype=torch.float32).to(device)
     count_dict = {}
