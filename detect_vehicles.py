@@ -145,7 +145,7 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
     features_tensor = torch.tensor(np.stack(idf["features"].values)).to(device)
 
     # Initialize variables
-    thresh = 42.0
+    thresh = 50.0
     n_features = features_tensor.shape[1]
     vdf = torch.empty((0, n_features), dtype=torch.float32).to(device)
     count_dict = {}
