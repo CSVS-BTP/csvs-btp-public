@@ -30,7 +30,7 @@ vehicle_class_rmap = {
 }
 
 model = YOLO("yolov10n.pt")
-conf = 0.25
+conf = 0.7
 
 # Load a pre-trained ResNet18 model
 feature_extractor = resnet18(weights="ResNet18_Weights.IMAGENET1K_V1")
