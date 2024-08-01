@@ -46,41 +46,13 @@ stream=True
 verbose=False 
 
 rectangles_dict = {
-    "a": {"tl": {"x": 0, "y": 500}, "br": {"x": 1020, "y": 1080}},
-    "b": {"tl": {"x": 0, "y": 150}, "br": {"x": 1020, "y": 500}},
-    "c": {"tl": {"x": 350, "y": 0}, "br": {"x": 1020, "y": 500}},
-    "d": {"tl": {"x": 1020, "y": 0}, "br": {"x": 1600, "y": 500}},
-    "e": {"tl": {"x": 1020, "y": 150}, "br": {"x": 1920, "y": 500}},
-    "f": {"tl": {"x": 1020, "y": 500}, "br": {"x": 1920, "y": 1080}},
+    "a": {"tl": {"x": 0, "y": 450}, "br": {"x": 1020, "y": 1080}},
+    "b": {"tl": {"x": 0, "y": 150}, "br": {"x": 1020, "y": 450}},
+    "c": {"tl": {"x": 400, "y": 0}, "br": {"x": 1020, "y": 450}},
+    "d": {"tl": {"x": 1020, "y": 0}, "br": {"x": 1720, "y": 450}},
+    "e": {"tl": {"x": 1020, "y": 150}, "br": {"x": 1920, "y": 450}},
+    "f": {"tl": {"x": 1020, "y": 450}, "br": {"x": 1920, "y": 1080}},
 }
-
-def apply_column_overrides(df, column_pairs, dist_map, dist_mapr):
-    df_copy = df.copy()
-    for _, row in df_copy.iterrows():
-        for idx in range(len(column_pairs)):
-            src_col, dst_col = column_pairs[idx]
-            # Check if source column has True value
-            if row[src_col]:
-                # Check if destination columns have True values
-                if row[dst_col[0]] and row[dst_col[1]]:
-                    # Determine which destination column to override based on distance
-                    max_dist = max(dist_map[src_col+dst_col[0]], dist_map[src_col+dst_col[1]])
-                    dst_col_to_set = dist_mapr[max_dist][-1]
-                    # Apply the override rules
-                    row[dst_col_to_set] = False
-    return df_copy
-
-# Create ordinal difference mapping
-def create_distance_map(columns):
-    dist_map = {}
-    col_list = list(columns)
-    for i, col1 in enumerate(col_list):
-        for j, col2 in enumerate(col_list):
-            if i != j:
-                # Compute absolute difference between positions
-                dist = abs(i - j)
-                dist_map[col1 + col2] = dist
-    return dist_map
 
 def detect_vehicles(video_file, csv_file='counts.csv'):
     results = model(
@@ -149,10 +121,14 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
 
     cdf = pd.DataFrame.from_dict(count_dict, orient="index")
 
-    vtlx = idf["tl"].apply(lambda x: x["x"])
-    vtly = idf["tl"].apply(lambda x: x["y"])
-    vbrx = idf["br"].apply(lambda x: x["x"])
-    vbry = idf["br"].apply(lambda x: x["y"])
+    vblx = idf['tl'].apply(lambda x:x['x'])
+    vbly = idf['br'].apply(lambda x:x['y'])
+    vtlx = idf['tl'].apply(lambda x:x['x'])
+    vtly = idf['tl'].apply(lambda x:x['y'])
+    vtrx = idf['br'].apply(lambda x:x['x'])
+    vtry = idf['tl'].apply(lambda x:x['y'])
+    vbrx = idf['br'].apply(lambda x:x['x'])
+    vbry = idf['br'].apply(lambda x:x['y'])
 
     bbox_dict = {}
     for bbid, bbox in rectangles_dict.items():
@@ -162,12 +138,23 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
         rbry = bbox["br"]["y"]
 
         # Create a mask for each corner point being inside the bounding box
+        bl_inside = (rtlx <= vblx) & (vblx <= rbrx) & (rtly <= vbly) & (vbly <= rbry)
         tl_inside = (rtlx <= vtlx) & (vtlx <= rbrx) & (rtly <= vtly) & (vtly <= rbry)
+        tr_inside = (rtlx <= vtrx) & (vtrx <= rbrx) & (rtly <= vtry) & (vtry <= rbry)
         br_inside = (rtlx <= vbrx) & (vbrx <= rbrx) & (rtly <= vbry) & (vbry <= rbry)
-
-        # Aggregate the results, assuming you want to know if any corner is inside
-        any_inside = tl_inside | br_inside
-        bbox_dict[bbid] = any_inside
+    
+        if bbid == 'a':
+            bbox_dict[bbid] = bl_inside 
+        elif bbid == 'b':
+            bbox_dict[bbid] = bl_inside
+        elif bbid == 'c':
+            bbox_dict[bbid] = tl_inside
+        elif bbid == 'd':
+            bbox_dict[bbid] = tr_inside
+        elif bbid == 'e':
+            bbox_dict[bbid] = br_inside
+        elif bbid == 'f':
+            bbox_dict[bbid] = br_inside
 
     bbox_df = pd.DataFrame(bbox_dict)
 
@@ -203,29 +190,24 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
 
     bbox_df["v_id"] = vids
 
-    tr_df = bbox_df.groupby("v_id").max().reset_index(drop=True)
+    r_df = bbox_df.groupby('v_id').max().reset_index(drop=True)
+    r_df.loc[(r_df['b']) & ((r_df['c'])&(r_df['e'])), 'c'] = False
+    r_df.loc[(r_df['d']) & ((r_df['e'])&(r_df['a'])), 'e'] = False
+    r_df.loc[(r_df['f']) & ((r_df['a'])&(r_df['c'])), 'a'] = False
 
-    columns = tr_df.columns
+    r_df.loc[(r_df['b']) & (r_df['c']), ['a','d','e','f']] = False
+    r_df.loc[(r_df['b']) & (r_df['e']), ['a','d','c','f']] = False
+    r_df.loc[(r_df['d']) & (r_df['e']), ['a','b','c','f']] = False
+    r_df.loc[(r_df['d']) & (r_df['a']), ['b','c','e','f']] = False
+    r_df.loc[(r_df['f']) & (r_df['a']), ['b','c','d','e']] = False
+    r_df.loc[(r_df['f']) & (r_df['c']), ['a','b','d','e']] = False
 
-    # Create the distance map
-    dist_map = create_distance_map(columns)
-
-    # Create reverse mapping for distances
-    dist_mapr = {dist: pair for pair, dist in dist_map.items()}
-
-
-    # Define column pairs for overriding (Update column pairs according to rules)
-    src_dst_pairs = [
-        ("b", ("c", "e")), 
-        ("d", ("e", "a")), 
-        ("f", ("a", "c"))
-        ]
-
-    r_df = apply_column_overrides(tr_df, src_dst_pairs, dist_map, dist_mapr)
     vtype_df = pd.merge(
         bbox_df["v_id"], idf["name"], how="inner", right_index=True, left_index=True
     )
-    r_df["vehicle"] = vtype_df.groupby("v_id")["name"].max()
+    tvtype_df = vtype_df.groupby(['v_id'])['name'].value_counts().reset_index()
+    idxs = tvtype_df.groupby(['v_id'])['count'].idxmax()
+    r_df['vehicle'] = tvtype_df.loc[idxs].set_index('v_id')['name']
 
     column_pairs = [
         ("b", "c"),
