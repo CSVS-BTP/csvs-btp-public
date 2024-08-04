@@ -177,16 +177,6 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
                     ('f', 'a'),
                     ('f', 'c')]
 
-    vehicle_class_rmap = {
-        0:'Car',
-        1:'Bus',
-        2:'Truck',
-        3:'Three-Wheeler',
-        4:'Two-Wheeler',
-        5:'LCV',
-        6:'Bicycle'
-    }
-
     t_df = pd.DataFrame(vehicle_class_rmap.values(), columns=['vehicle'])
     for vehicle in r_df['vehicle'].unique():
         tv_df = r_df.loc[r_df['vehicle']==vehicle]
