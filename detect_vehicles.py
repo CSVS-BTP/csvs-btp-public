@@ -1,7 +1,6 @@
 import torch
 from ultralytics import YOLOWorld
 import pandas as pd
-import numpy as np
 
 # Check if GPU is available
 print("Checking GPU availability...")
@@ -21,8 +20,8 @@ vehicle_list = [
     'vehicle/Bus',
     'vehicle/Truck',
     'vehicle/Three Wheeler',
-    'vehicle/Motorbike',
-    'vehicle/Light Commercial Vehicle',
+    'vehicle/Two Wheeler',
+    'vehicle/Small Four Wheeler',
     'vehicle/Bicycle'
 ]
 model.set_classes(vehicle_list)
@@ -36,14 +35,7 @@ vehicle_class_rmap = {
     4:'Two-Wheeler',
     5:'LCV',
     6:'Bicycle'
-}
-
-conf = 0.25
-iou = 0.5
-agnostic_nms = True
-vid_stride=1
-stream=True
-verbose=False 
+} 
 
 rectangles_dict = {
     "a": {"tl": {"x": 0, "y": 450}, "br": {"x": 1020, "y": 1080}},
@@ -55,13 +47,18 @@ rectangles_dict = {
 }
 
 def detect_vehicles(video_file, csv_file='counts.csv'):
-    results = model(
+    results = model.track(
         source=video_file,
-        conf=conf,
         device=device,
-        vid_stride=vid_stride,
-        stream=stream,
-        verbose=verbose,
+        imgsz = (640,1120),
+        conf = 0.25,
+        iou = 0.5,
+        agnostic_nms = True,
+        vid_stride=1,
+        stream=True,
+        tracker="custom_bytetrack.yaml",
+        persist=True,
+        verbose=False
     )
 
     ob_id = 0
@@ -72,54 +69,31 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
 
         for ob in range(boxes.shape[0]):
             cls_id = int(boxes.cls[ob].item())
-            features = boxes.data[ob].cpu()
+            v_id = int(boxes.id[ob].item()) if boxes.id is not None else None
+            # features = boxes.data[ob].cpu()
 
             x1, y1, x2, y2 = map(int, boxes.xyxy[ob])
             top_left = {"x": x1, "y": y1}
             bottom_right = {"x": x2, "y": y2}
+            x, y, w, h = map(int, boxes.xywh[ob])
+            centre = {"x": x, "y": y}
 
             features_dict = {
                 "fn": fn,
-                "name": vehicle_class_rmap[cls_id],
+                "v_id": v_id,
                 "cls_id": cls_id,
-                "features": features,
+                # "features": features,
                 "tl": top_left,
                 "br": bottom_right,
+                "cn":centre
             }
             instance_dict[ob_id] = features_dict
             ob_id += 1
 
     idf = pd.DataFrame(instance_dict).T
-
-    # Convert features to a single tensor for faster computation
-    features_tensor = torch.tensor(np.stack(idf["features"].values)).to(device)
-
-    # Initialize variables
-    thresh = 80
-    n_features = features_tensor.shape[1]
-    vdf = torch.empty((0, n_features), dtype=torch.float32).to(device)
-    count_dict = {}
-
-    # Process each set of features
-    for ob_id, features in enumerate(features_tensor):
-        if vdf.shape[0] == 0:
-            # Initialize with the first set of features if empty
-            vdf = torch.cat([vdf, features.unsqueeze(0)]).to(device)
-            count_dict[0] = [idf.index[ob_id]]
-        else:
-            # Compute Euclidean distances using broadcasting
-            distances = torch.sqrt(((vdf - features) ** 2).sum(dim=1)).to(device)
-            matches = distances < thresh
-            if matches.any():
-                vid = matches.nonzero(as_tuple=True)[0][0].item()
-            else:
-                vid = len(vdf)
-                vdf = torch.cat([vdf, features.unsqueeze(0)]).to(device)
-            if vid not in count_dict:
-                count_dict[vid] = []
-            count_dict[vid].append(idf.index[ob_id])
-
-    cdf = pd.DataFrame.from_dict(count_dict, orient="index")
+    idf['fn'] = idf['fn'].astype(int)
+    idf['cls_id'] = idf['cls_id'].astype(int)
+    idf['v_id'] = idf['v_id'].astype(float)
 
     vblx = idf['tl'].apply(lambda x:x['x'])
     vbly = idf['br'].apply(lambda x:x['y'])
@@ -129,6 +103,8 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
     vtry = idf['tl'].apply(lambda x:x['y'])
     vbrx = idf['br'].apply(lambda x:x['x'])
     vbry = idf['br'].apply(lambda x:x['y'])
+    vbcx = idf['cn'].apply(lambda x:x['x'])
+    vbcy = idf['cn'].apply(lambda x:x['y'])
 
     bbox_dict = {}
     for bbid, bbox in rectangles_dict.items():
@@ -142,97 +118,82 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
         tl_inside = (rtlx <= vtlx) & (vtlx <= rbrx) & (rtly <= vtly) & (vtly <= rbry)
         tr_inside = (rtlx <= vtrx) & (vtrx <= rbrx) & (rtly <= vtry) & (vtry <= rbry)
         br_inside = (rtlx <= vbrx) & (vbrx <= rbrx) & (rtly <= vbry) & (vbry <= rbry)
-    
-        if bbid == 'a':
-            bbox_dict[bbid] = bl_inside 
-        elif bbid == 'b':
-            bbox_dict[bbid] = bl_inside
-        elif bbid == 'c':
-            bbox_dict[bbid] = tl_inside
-        elif bbid == 'd':
-            bbox_dict[bbid] = tr_inside
-        elif bbid == 'e':
-            bbox_dict[bbid] = br_inside
-        elif bbid == 'f':
-            bbox_dict[bbid] = br_inside
+        cn_inside = (rtlx <= vbcx) & (vbcx <= rbrx) & (rtly <= vbcy) & (vbcy <= rbry)
+        any_inside = tl_inside | br_inside | bl_inside | tr_inside | cn_inside
+   
+        bbox_dict[bbid] = any_inside
 
     bbox_df = pd.DataFrame(bbox_dict)
+    bbox_df['v_id'] = idf['v_id']
+    bbox_df = bbox_df.dropna(subset='v_id').reset_index(names='ob_id')
+    bbox_df['v_id'] = bbox_df['v_id'].astype(int)
 
-    # Flatten cdf from wide to long format, preserving the original row indices
-    cdf_melted = cdf.reset_index().melt(
-        id_vars="index", var_name="Variable", value_name="Value"
-    )
-    cdf_melted = cdf_melted.drop(
-        columns="Variable"
-    )  # We don't need the variable column anymore
+    r_df = bbox_df.drop(columns='ob_id').groupby('v_id').max().reset_index(drop=True)
+    r_df.loc[(r_df['b']) & ((r_df['c']) & (r_df['e'])), 'c'] = False
+    r_df.loc[(r_df['d']) & ((r_df['e']) & (r_df['a'])), 'e'] = False
+    r_df.loc[(r_df['f']) & ((r_df['a']) & (r_df['c'])), 'a'] = False
 
-    # Filter out only the rows in cdf_melted where 'Value' matches any index in idf
-    filtered_cdf = cdf_melted[cdf_melted["Value"].isin(idf.index)]
+    r_df.loc[(r_df.sum(axis=1)==2) & (r_df['a']) & (r_df['b']), 'c'] = True
+    r_df.loc[(r_df.sum(axis=1)==2) & (r_df['e']) & (r_df['f']), 'd'] = True
 
-    # Create vids list initialized to False
-    vids = [False] * len(idf)
-
-    # Update vids based on filtered_cdf
-    # This will set True at the position in vids if the corresponding idf index was found in any row of cdf
-    for value, group in filtered_cdf.groupby("Value"):
-        if value in idf.index:
-            vids[int(value)] = (
-                True  # Set True where the idf index matches the Value in cdf
-            )
-
-    # If you need the index of cdf where each idf index was found, we need to adjust this:
-    vids = [None] * len(idf)
-    for value, group in filtered_cdf.groupby("Value"):
-        if value in idf.index:
-            vids[int(value)] = group["index"].tolist()[
-                0
-            ]  # Store the list of cdf indices where each idf index was found
-
-    bbox_df["v_id"] = vids
-
-    r_df = bbox_df.groupby('v_id').max().reset_index(drop=True)
-    r_df.loc[(r_df['b']) & ((r_df['c'])&(r_df['e'])), 'c'] = False
-    r_df.loc[(r_df['d']) & ((r_df['e'])&(r_df['a'])), 'e'] = False
-    r_df.loc[(r_df['f']) & ((r_df['a'])&(r_df['c'])), 'a'] = False
-
-    r_df.loc[(r_df['b']) & (r_df['c']), ['a','d','e','f']] = False
     r_df.loc[(r_df['b']) & (r_df['e']), ['a','d','c','f']] = False
-    r_df.loc[(r_df['d']) & (r_df['e']), ['a','b','c','f']] = False
     r_df.loc[(r_df['d']) & (r_df['a']), ['b','c','e','f']] = False
-    r_df.loc[(r_df['f']) & (r_df['a']), ['b','c','d','e']] = False
     r_df.loc[(r_df['f']) & (r_df['c']), ['a','b','d','e']] = False
+    r_df.loc[(r_df['b']) & (r_df['c']), ['a','d','e','f']] = False
+    r_df.loc[(r_df['d']) & (r_df['e']), ['a','b','c','f']] = False
+    r_df.loc[(r_df['f']) & (r_df['a']), ['b','c','d','e']] = False
 
-    vtype_df = pd.merge(
-        bbox_df["v_id"], idf["name"], how="inner", right_index=True, left_index=True
-    )
-    tvtype_df = vtype_df.groupby(['v_id'])['name'].value_counts().reset_index()
+    r_df.loc[(r_df.sum(axis=1)==1) & (r_df['b']), 'c'] = True
+    r_df.loc[(r_df.sum(axis=1)==1) & (r_df['c']), 'f'] = True
+    r_df.loc[(r_df.sum(axis=1)==1) & (r_df['f']), 'a'] = True
+    r_df.loc[(r_df.sum(axis=1)==1) & (r_df['a']), 'd'] = True
+    r_df.loc[(r_df.sum(axis=1)==1) & (r_df['d']), 'e'] = True
+    r_df.loc[(r_df.sum(axis=1)==1) & (r_df['e']), 'b'] = True
+
+    vtype_df = pd.merge(bbox_df['v_id'], idf['cls_id'], how='inner', right_index=True, left_index=True)
+    tvtype_df = vtype_df.groupby(['v_id'])['cls_id'].value_counts().reset_index()
     idxs = tvtype_df.groupby(['v_id'])['count'].idxmax()
-    r_df['vehicle'] = tvtype_df.loc[idxs].set_index('v_id')['name']
 
-    column_pairs = [
-        ("b", "c"),
-        ("b", "e"),
-        ("d", "e"),
-        ("d", "a"),
-        ("f", "a"),
-        ("f", "c"),
-    ]
+    for v_id in tvtype_df['v_id'].unique():
+        ttvtype_df = tvtype_df.loc[tvtype_df['v_id']==v_id]
+        cls_auto = ttvtype_df['cls_id'] == 3
+        cls_lcv = ttvtype_df['cls_id'] == 5
+        if cls_auto.any():
+            if ttvtype_df[cls_auto]['count'].iloc[0] > 0:
+                idx = ttvtype_df[ttvtype_df['cls_id'] == 3].index
+                idxs[v_id] = idx[0]
+        if cls_lcv.any():
+            if ttvtype_df[cls_lcv]['count'].iloc[0] > 2:
+                idx = ttvtype_df[ttvtype_df['cls_id'] == 5].index
+                idxs[v_id] = idx[0]
+                
+    r_df['cls_id'] = tvtype_df.loc[idxs]['cls_id'].values
+    r_df['vehicle'] = r_df['cls_id'].map(vehicle_class_rmap)
 
-    # Initialize a dictionary to hold the counts of each combination
-    combination_counts = {pair: 0 for pair in column_pairs}
+    column_pairs = [('b', 'c'),
+                    ('b', 'e'),
+                    ('d', 'e'),
+                    ('d', 'a'),
+                    ('f', 'a'),
+                    ('f', 'c')]
 
-    t_df = pd.DataFrame(vehicle_class_rmap.values(), columns=["vehicle"])
-    for vehicle in r_df["vehicle"].unique():
-        tv_df = r_df.loc[r_df["vehicle"] == vehicle]
+    vehicle_class_rmap = {
+        0:'Car',
+        1:'Bus',
+        2:'Truck',
+        3:'Three-Wheeler',
+        4:'Two-Wheeler',
+        5:'LCV',
+        6:'Bicycle'
+    }
+
+    t_df = pd.DataFrame(vehicle_class_rmap.values(), columns=['vehicle'])
+    for vehicle in r_df['vehicle'].unique():
+        tv_df = r_df.loc[r_df['vehicle']==vehicle]
         # Iterate through each pair and count how many times both columns are True
         for pair in column_pairs:
             col1, col2 = pair
-            combination_counts[pair] = (
-                (tv_df[col1] == True) & (tv_df[col2] == True)
-            ).sum()
-            t_df.loc[t_df["vehicle"] == vehicle, "".join(pair).upper()] = (
-                combination_counts[pair]
-            )
+            t_df.loc[t_df['vehicle']==vehicle, ''.join(pair).upper()] = ((tv_df[col1]) & (tv_df[col2])).sum()
 
     f_df = t_df.copy().rename(columns={"vehicle": "Turning Patterns"})
     f_df = f_df.set_index("Turning Patterns").T
