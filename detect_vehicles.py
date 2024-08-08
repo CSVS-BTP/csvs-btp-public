@@ -1,6 +1,7 @@
 import torch
 from ultralytics import YOLOWorld
 import pandas as pd
+import numpy as np
 
 # Check if GPU is available
 print("Checking GPU availability...")
@@ -47,19 +48,20 @@ rectangles_dict = {
 }
 
 
-def detect_vehicles(video_file, csv_file="counts.csv"):
+def detect_vehicles(video_file, csv_file='counts.csv'):
     results = model.track(
         source=video_file,
         device=device,
-        imgsz=(640, 1280),
-        conf=0.25,
-        iou=0.4,
-        agnostic_nms=True,
-        vid_stride=1,
-        stream=True,
-        tracker="custom_botsort.yaml",
-        persist=True,
-        verbose=False,
+        imgsz = (640,1280),
+        conf = 0.25,
+        iou = 0.4,
+        max_det=100,
+        agnostic_nms = True,
+        vid_stride = 1,
+        stream = True,
+        tracker = "custom_botsort.yaml",
+        persist = True,
+        verbose = False
     )
 
     ob_id = 0
@@ -86,113 +88,112 @@ def detect_vehicles(video_file, csv_file="counts.csv"):
                 # "features": features,
                 "tl": top_left,
                 "br": bottom_right,
-                "cn": centre,
+                "cn":centre
             }
             instance_dict[ob_id] = features_dict
             ob_id += 1
 
     idf = pd.DataFrame(instance_dict).T
-    idf["fn"] = idf["fn"].astype(int)
-    idf["cls_id"] = idf["cls_id"].astype(int)
-    idf["v_id"] = idf["v_id"].astype(float)
+    idf['fn'] = idf['fn'].astype(int)
+    idf['cls_id'] = idf['cls_id'].astype(int)
+    idf['v_id'] = idf['v_id'].astype(float)
 
-    vblx = idf["tl"].apply(lambda x: x["x"])
-    vbly = idf["br"].apply(lambda x: x["y"])
-    vtlx = idf["tl"].apply(lambda x: x["x"])
-    vtly = idf["tl"].apply(lambda x: x["y"])
-    vtrx = idf["br"].apply(lambda x: x["x"])
-    vtry = idf["tl"].apply(lambda x: x["y"])
-    vbrx = idf["br"].apply(lambda x: x["x"])
-    vbry = idf["br"].apply(lambda x: x["y"])
-    vbcx = idf["cn"].apply(lambda x: x["x"])
-    vbcy = idf["cn"].apply(lambda x: x["y"])
+    idf['cn_x'] = idf['cn'].apply(lambda p:p['x'])
+    idf['cn_y'] = idf['cn'].apply(lambda p:p['y'])
 
-    bbox_dict = {}
-    for bbid, bbox in rectangles_dict.items():
-        rtlx = bbox["tl"]["x"]
-        rtly = bbox["tl"]["y"]
-        rbrx = bbox["br"]["x"]
-        rbry = bbox["br"]["y"]
+    vidfx = idf.groupby('v_id')['cn_x'].aggregate(['first','last']).reset_index()
+    vidfy = idf.groupby('v_id')['cn_y'].aggregate(['first','last']).reset_index()
+    vdf = pd.merge(vidfx, vidfy, how='inner', on='v_id', suffixes=['_x', '_y'])
+    vdf['delta_x'] = vdf['first_x'] - vdf['last_x']
+    vdf['delta_y'] = vdf['first_y'] - vdf['last_y']
 
-        # Create a mask for each corner point being inside the bounding box
-        bl_inside = (rtlx <= vblx) & (vblx <= rbrx) & (rtly <= vbly) & (vbly <= rbry)
-        tl_inside = (rtlx <= vtlx) & (vtlx <= rbrx) & (rtly <= vtly) & (vtly <= rbry)
-        tr_inside = (rtlx <= vtrx) & (vtrx <= rbrx) & (rtly <= vtry) & (vtry <= rbry)
-        br_inside = (rtlx <= vbrx) & (vbrx <= rbrx) & (rtly <= vbry) & (vbry <= rbry)
-        cn_inside = (rtlx <= vbcx) & (vbcx <= rbrx) & (rtly <= vbcy) & (vbcy <= rbry)
-        any_inside = tl_inside | br_inside | bl_inside | tr_inside | cn_inside
+    tvtype_df = idf.groupby(['v_id'])['cls_id'].value_counts().reset_index()
+    idxs = tvtype_df.groupby(['v_id'])['count'].idxmax()
 
-        bbox_dict[bbid] = any_inside
-
-    bbox_df = pd.DataFrame(bbox_dict)
-    bbox_df["v_id"] = idf["v_id"]
-    bbox_df = bbox_df.dropna(subset="v_id").reset_index(names="ob_id")
-    bbox_df["v_id"] = bbox_df["v_id"].astype(int)
-
-    r_df = bbox_df.drop(columns="ob_id").groupby("v_id").max().reset_index(drop=True)
-    r_df.loc[(r_df["b"]) & ((r_df["c"]) & (r_df["e"])), "c"] = False
-    r_df.loc[(r_df["d"]) & ((r_df["e"]) & (r_df["a"])), "e"] = False
-    r_df.loc[(r_df["f"]) & ((r_df["a"]) & (r_df["c"])), "a"] = False
-
-    r_df.loc[(r_df.sum(axis=1) == 2) & (r_df["a"]) & (r_df["b"]), "c"] = True
-    r_df.loc[(r_df.sum(axis=1) == 2) & (r_df["e"]) & (r_df["f"]), "d"] = True
-
-    r_df.loc[(r_df["b"]) & (r_df["e"]), ["a", "d", "c", "f"]] = False
-    r_df.loc[(r_df["d"]) & (r_df["a"]), ["b", "c", "e", "f"]] = False
-    r_df.loc[(r_df["f"]) & (r_df["c"]), ["a", "b", "d", "e"]] = False
-    r_df.loc[(r_df["b"]) & (r_df["c"]), ["a", "d", "e", "f"]] = False
-    r_df.loc[(r_df["d"]) & (r_df["e"]), ["a", "b", "c", "f"]] = False
-    r_df.loc[(r_df["f"]) & (r_df["a"]), ["b", "c", "d", "e"]] = False
-
-    r_df.loc[(r_df.sum(axis=1) == 1) & (r_df["b"]), "c"] = True
-    r_df.loc[(r_df.sum(axis=1) == 1) & (r_df["c"]), "f"] = True
-    r_df.loc[(r_df.sum(axis=1) == 1) & (r_df["f"]), "a"] = True
-    r_df.loc[(r_df.sum(axis=1) == 1) & (r_df["a"]), "d"] = True
-    r_df.loc[(r_df.sum(axis=1) == 1) & (r_df["d"]), "e"] = True
-    r_df.loc[(r_df.sum(axis=1) == 1) & (r_df["e"]), "b"] = True
-
-    vtype_df = pd.merge(
-        bbox_df["v_id"], idf["cls_id"], how="inner", right_index=True, left_index=True
-    )
-    tvtype_df = vtype_df.groupby(["v_id"])["cls_id"].value_counts().reset_index()
-    idxs = tvtype_df.groupby(["v_id"])["count"].idxmax()
-
-    for v_id in tvtype_df["v_id"].unique():
-        ttvtype_df = tvtype_df.loc[tvtype_df["v_id"] == v_id]
-        cls_auto = ttvtype_df["cls_id"] == 3
-        cls_lcv = ttvtype_df["cls_id"] == 5
+    for v_id in tvtype_df['v_id'].unique():
+        ttvtype_df = tvtype_df.loc[tvtype_df['v_id']==v_id]
+        cls_auto = ttvtype_df['cls_id'] == 3
+        cls_lcv = ttvtype_df['cls_id'] == 5
         if cls_auto.any():
-            if ttvtype_df[cls_auto]["count"].iloc[0] > 0:
-                idx = ttvtype_df[ttvtype_df["cls_id"] == 3].index
+            if ttvtype_df[cls_auto]['count'].iloc[0] > 0:
+                idx = ttvtype_df[ttvtype_df['cls_id'] == 3].index
                 idxs[v_id] = idx[0]
-        if cls_lcv.any():
-            if ttvtype_df[cls_lcv]["count"].iloc[0] > 2:
-                idx = ttvtype_df[ttvtype_df["cls_id"] == 5].index
+        elif cls_lcv.any():
+            if ttvtype_df[cls_lcv]['count'].iloc[0] > 2:
+                idx = ttvtype_df[ttvtype_df['cls_id'] == 5].index
                 idxs[v_id] = idx[0]
-
-    r_df["cls_id"] = tvtype_df.loc[idxs]["cls_id"].values
-    r_df["vehicle"] = r_df["cls_id"].map(vehicle_class_rmap)
-
-    column_pairs = [
-        ("b", "c"),
-        ("b", "e"),
-        ("d", "e"),
-        ("d", "a"),
-        ("f", "a"),
-        ("f", "c"),
+                
+    vdf['cls_id'] = tvtype_df.loc[idxs]['cls_id'].values
+    vdf['vehicle'] = vdf['cls_id'].map(vehicle_class_rmap)
+    
+    # Coordinates for lines
+    lines = [
+        (-2000, 380),
+        (-2000, -100),
+        (-1000, -300),
+        (1200, -400),
+        (1600, 0),
+        (1200, 280)
     ]
+    line_names = ['BC', 'BE', 'DE', 'DA', 'FA', 'FC']
 
-    t_df = pd.DataFrame(vehicle_class_rmap.values(), columns=["vehicle"])
-    for vehicle in r_df["vehicle"].unique():
-        tv_df = r_df.loc[r_df["vehicle"] == vehicle]
-        # Iterate through each pair and count how many times both columns are True
-        for pair in column_pairs:
-            col1, col2 = pair
-            t_df.loc[t_df["vehicle"] == vehicle, "".join(pair).upper()] = (
-                (tv_df[col1]) & (tv_df[col2])
-            ).sum()
+    # Function to calculate perpendicular distance from a point to a line segment
+    def segment_distance(x1, y1, x2, y2, x0, y0):
+        # Vector AB
+        AB = np.array([x2 - x1, y2 - y1])
+        # Vector AP
+        AP = np.array([x0 - x1, y0 - y1])
+        # Vector BP
+        BP = np.array([x0 - x2, y0 - y2])
+        
+        # Dot products
+        AB_AB = np.dot(AB, AB)
+        AB_AP = np.dot(AB, AP)
+        AB_BP = np.dot(AB, BP)
+        
+        if AB_AB == 0:
+            return np.linalg.norm(AP)  # A and B are the same point
+        t = AB_AP / AB_AB
+        if t < 0.0:
+            return np.linalg.norm(AP)  # Closest to A
+        elif t > 1.0:
+            return np.linalg.norm(BP)  # Closest to B
+        else:
+            nearest = np.array([x1, y1]) + t * AB
+            return np.linalg.norm(nearest - np.array([x0, y0]))
 
-    f_df = t_df.copy().rename(columns={"vehicle": "Turning Patterns"})
-    f_df = f_df.set_index("Turning Patterns").T
-    f_df = f_df.fillna(0).astype(int).reset_index(names="Turning Patterns")
-    f_df.to_csv(csv_file, index=False)
+    # Calculate and plot the shortest perpendiculars
+    turning_patterns = []
+    for index, row in vdf.iterrows():
+        x0, y0 = row['delta_x'], row['delta_y']
+        min_distance = float('inf')
+        closest_line = None
+
+        for i, (x, y) in enumerate(lines):
+            distance = segment_distance(0, 0, x, y, x0, y0)
+            if distance < min_distance:
+                min_distance = distance
+                closest_line = line_names[i]
+
+        turning_patterns.append(closest_line)
+
+    vdf['Turning Patterns'] = turning_patterns
+   
+    gdf = vdf.groupby(['Turning Patterns', 'vehicle'])[['v_id']].count().reset_index()
+    pgdf = gdf.pivot_table(values='v_id', index='Turning Patterns', columns='vehicle')
+
+    vtypes = list(vehicle_class_rmap.values())    
+    for vtype in vtypes:
+        if vtype not in pgdf.columns:
+            pgdf[vtype] = np.nan 
+
+    pgdf = pgdf.T
+    turns_order = ['BC','BE','DE','DA','FA','FC']
+    for turn in turns_order:
+        if turn not in pgdf.columns:
+            pgdf[turn] = np.nan  
+    pgdf = pgdf.T 
+
+    fdf = pgdf.loc[turns_order][vtypes]
+    fdf = fdf.fillna(0).astype(int).reset_index()
+    fdf.to_csv(csv_file, index=False)
