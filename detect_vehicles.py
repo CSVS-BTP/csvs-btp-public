@@ -73,7 +73,6 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
         for ob in range(boxes.shape[0]):
             cls_id = int(boxes.cls[ob].item())
             v_id = int(boxes.id[ob].item()) if boxes.id is not None else None
-            # features = boxes.data[ob].cpu()
 
             x1, y1, x2, y2 = map(int, boxes.xyxy[ob])
             top_left = {"x": x1, "y": y1}
@@ -85,7 +84,6 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
                 "fn": fn,
                 "v_id": v_id,
                 "cls_id": cls_id,
-                # "features": features,
                 "tl": top_left,
                 "br": bottom_right,
                 "cn":centre
@@ -101,11 +99,17 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
     idf['cn_x'] = idf['cn'].apply(lambda p:p['x'])
     idf['cn_y'] = idf['cn'].apply(lambda p:p['y'])
 
+    tdf_drop = idf.groupby('v_id')['fn'].count().reset_index()
+    vdrop = tdf_drop.loc[tdf_drop['fn'] < 2]['v_id'].values.tolist()
+    idf.drop(idf.loc[idf['v_id'].isin(vdrop + [np.nan])].index, inplace=True)
+    idf.reset_index(drop=True, inplace=True)
+
     vidfx = idf.groupby('v_id')['cn_x'].aggregate(['first','last']).reset_index()
     vidfy = idf.groupby('v_id')['cn_y'].aggregate(['first','last']).reset_index()
     vdf = pd.merge(vidfx, vidfy, how='inner', on='v_id', suffixes=['_x', '_y'])
     vdf['delta_x'] = vdf['first_x'] - vdf['last_x']
     vdf['delta_y'] = vdf['first_y'] - vdf['last_y']
+    vdf = vdf.loc[(vdf['delta_x'].abs()>45) & (vdf['delta_x'].abs()>80)]
 
     tvtype_df = idf.groupby(['v_id'])['cls_id'].value_counts().reset_index()
     idxs = tvtype_df.groupby(['v_id'])['count'].idxmax()
@@ -113,14 +117,9 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
     for v_id in tvtype_df['v_id'].unique():
         ttvtype_df = tvtype_df.loc[tvtype_df['v_id']==v_id]
         cls_auto = ttvtype_df['cls_id'] == 3
-        cls_lcv = ttvtype_df['cls_id'] == 5
         if cls_auto.any():
             if ttvtype_df[cls_auto]['count'].iloc[0] > 0:
                 idx = ttvtype_df[ttvtype_df['cls_id'] == 3].index
-                idxs[v_id] = idx[0]
-        elif cls_lcv.any():
-            if ttvtype_df[cls_lcv]['count'].iloc[0] > 2:
-                idx = ttvtype_df[ttvtype_df['cls_id'] == 5].index
                 idxs[v_id] = idx[0]
                 
     vdf['cls_id'] = tvtype_df.loc[idxs]['cls_id'].values
@@ -128,12 +127,12 @@ def detect_vehicles(video_file, csv_file='counts.csv'):
     
     # Coordinates for lines
     lines = [
-        (-2000, 380),
-        (-2000, -100),
+        (-2000, 300),
+        (-2000, 0),
         (-1000, -300),
-        (1200, -400),
+        (1200, -300),
         (1600, 0),
-        (1200, 280)
+        (1200, 300)
     ]
     line_names = ['BC', 'BE', 'DE', 'DA', 'FA', 'FC']
 
