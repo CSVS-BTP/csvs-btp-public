@@ -148,6 +148,7 @@ def detect_turns(cam_id, output_json = "output.json"):
     fdf = pgdf.loc[turns_list][vtypes].fillna(0).astype(int).reset_index()
 
     counts = fdf.T.to_dict()
+    # Predicting counts for future where N knowns = N unknowns is currently not known in mathematics
     output = {"Cam_ID":{"Cumulative Counts":counts, "Predicted Counts":counts}}
 
     # Writing to a JSON file
