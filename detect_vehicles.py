@@ -1,6 +1,7 @@
 import torch
 from ultralytics import YOLOWorld
 import pandas as pd
+import numpy as np
 
 # Check if GPU is available
 print("Checking GPU availability...")
