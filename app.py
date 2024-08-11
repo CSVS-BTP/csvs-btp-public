@@ -13,20 +13,17 @@ def main():
     # Get the arguments
     input_file = sys.argv[1]
     output_file = sys.argv[2]
+    print(f"input file: {input_file}")
+    print(f"output file: {output_file}")
     
     with open(input_file, 'r') as file:
         input_data = json.load(file)
-    cam_id_data = input_data["Cam_ID"]
+
+    print(f"{input_data}")
+    cam_id = list(input_data.keys())[0]
+    cam_id_data = input_data[cam_id]
     vid_1_path = cam_id_data["Vid_1"]
     vid_2_path = cam_id_data["Vid_2"]
-    cam_id_1 = vid_1_path.split('/')[-1].split('.')[0][:-6]
-    cam_id_2 = vid_2_path.split('/')[-1].split('.')[0][:-6]
-    if cam_id_1 != cam_id_2:
-        print('Print cam ids mismatch')
-        print(cam_id_1)
-        print(cam_id_2)
-    else:
-        cam_id = cam_id_1
 
     print("Processing started")
     # Print the arguments to verify
