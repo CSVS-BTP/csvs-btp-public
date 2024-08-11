@@ -1,13 +1,9 @@
-import subprocess
 import sys
 import json
 from detect_vehicles import detect_vehicles
 from detect_turns import detect_turns
 
 def main():
-    
-    # Refreshing git instance
-    subprocess.run(['git', 'pull'], capture_output=False, text=False)
 
     # Check if the correct number of arguments is provided
     if len(sys.argv) != 3:
