@@ -149,7 +149,7 @@ def detect_turns(cam_id, output_json = "output.json"):
 
     counts = fdf.T.to_dict()
     # Predicting counts for future where N knowns = N unknowns is currently not known in mathematics
-    output = {"Cam_ID":{"Cumulative Counts":counts, "Predicted Counts":counts}}
+    output = {cam_id:{"Cumulative Counts":counts, "Predicted Counts":counts}}
 
     # Writing to a JSON file
     with open(output_json, 'w') as file:
