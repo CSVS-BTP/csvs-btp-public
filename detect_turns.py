@@ -145,7 +145,7 @@ def detect_turns(cam_id, output_json = "output.json"):
             pgdf[turn] = np.nan  
     pgdf = pgdf.T 
 
-    fdf = pgdf.loc[turns_list][vtypes].fillna(0).astype(int).reset_index()
+    fdf = pgdf.loc[turns_list][vtypes].fillna(0).astype(int)
 
     counts = fdf.T.to_dict()
     # Predicting counts for future where N knowns = N unknowns is currently not known in mathematics
