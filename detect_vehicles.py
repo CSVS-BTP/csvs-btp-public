@@ -17,25 +17,25 @@ else:
 model = YOLOWorld("yolov8s-worldv2.pt")
 
 vehicle_list = [
-    'vehicle/Car',
+    'vehicle/Bicycle',
     'vehicle/Bus',
-    'vehicle/Truck',
-    'vehicle/Three Wheeler',
-    'vehicle/Two Wheeler',
+    'vehicle/Car',
     'vehicle/Small Four Wheeler',
-    'vehicle/Bicycle'
+    'vehicle/Three Wheeler',
+    'vehicle/Truck',
+    'vehicle/Two Wheeler',
 ]
 model.set_classes(vehicle_list)
 
 # Define vehicle class map and IDs
 vehicle_class_rmap = {
-    0:'Car',
+    0:'Bicycle',
     1:'Bus',
-    2:'Truck',
-    3:'Three-Wheeler',
-    4:'Two-Wheeler',
-    5:'LCV',
-    6:'Bicycle'
+    2:'Car',
+    3:'LCV',
+    4:'Three Wheeler',
+    5:'Truck',
+    6:'Two Wheeler',
 } 
 
 def detect_vehicles(video_file, csv_file='vehicles.csv'):

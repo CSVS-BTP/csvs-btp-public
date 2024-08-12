@@ -31,14 +31,14 @@ cam_id_turns_map = {
 }
 
 vehicle_class_rmap = {
-    0:'Car',
+    0:'Bicycle',
     1:'Bus',
-    2:'Truck',
-    3:'Three-Wheeler',
-    4:'Two-Wheeler',
-    5:'LCV',
-    6:'Bicycle'
-}
+    2:'Car',
+    3:'LCV',
+    4:'Three Wheeler',
+    5:'Truck',
+    6:'Two Wheeler',
+} 
 
 # Function to calculate perpendicular distance from a point to a line segment
 def segment_distance(x1, y1, x2, y2, x0, y0):
