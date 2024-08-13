@@ -20,7 +20,7 @@ vehicle_list = [
     'vehicle/Bicycle',
     'vehicle/Bus',
     'vehicle/Car',
-    'vehicle/Small Four Wheeler',
+    'vehicle/Minivan',
     'vehicle/Three Wheeler',
     'vehicle/Truck',
     'vehicle/Two Wheeler',
@@ -110,6 +110,6 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
     vdf['cls_id'] = tvtype_df.loc[idxs]['cls_id'].values
     vdf['vehicle'] = vdf['cls_id'].map(vehicle_class_rmap)
 
-    cols = ['delta_x', 'delta_y', 'vehicle']
+    cols = ['first_x', 'first_y', 'last_x', 'last_y', 'delta_x', 'delta_y', 'vehicle']
     tvdf = vdf[cols]
     tvdf.to_csv(csv_file, index=False)

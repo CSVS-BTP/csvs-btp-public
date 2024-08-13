@@ -99,11 +99,10 @@ def detect_turns(cam_id, output_json = "output.json"):
     vdf['r'] = np.sqrt(vdf['delta_x']**2 + vdf['delta_y']**2)
     vdf['theta'] = np.rad2deg(np.arctan2(vdf['delta_y'], vdf['delta_x']))
     r_max = vdf['r'].max()
-    vdf['r'] /= r_max
 
     lines = []
     agc = AgglomerativeClustering(n_clusters=len(turns_list))
-    vdf['cluster'] = agc.fit_predict(vdf[['r','theta']])
+    vdf['cluster'] = agc.fit_predict(vdf[['first_x', 'first_y', 'last_x', 'last_y']])
     cluster_centers = vdf.groupby('cluster')['theta'].median().reset_index()
     cluster_centers.sort_values(by='angle', key=lambda x: (x - 90) % 360, inplace=True)
     cluster_centers.reset_index(drop=True, inplace=True)
