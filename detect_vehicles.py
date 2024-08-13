@@ -13,8 +13,8 @@ else:
     print("GPU is not available")
     device = torch.device("cpu")
 
-# Load a pretrained YOLOv8s-worldv2 model
-model = YOLOWorld("yolov8s-worldv2.pt")
+# Load a pretrained YOLOv8l-worldv2 model
+model = YOLOWorld("yolov8l-worldv2.pt")
 
 vehicle_list = [
     'vehicle/Bicycle',
@@ -42,7 +42,7 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
     results = model.track(
         source=video_file,
         device=device,
-        imgsz = (640,1280),
+        imgsz = (1080,1920),
         conf = 0.25,
         iou = 0.4,
         max_det=100,
@@ -101,10 +101,10 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
 
     for v_id in tvtype_df['v_id'].unique():
         ttvtype_df = tvtype_df.loc[tvtype_df['v_id']==v_id]
-        cls_auto = ttvtype_df['cls_id'] == 3
+        cls_auto = ttvtype_df['cls_id'] == 4
         if cls_auto.any():
             if ttvtype_df[cls_auto]['count'].iloc[0] > 0:
-                idx = ttvtype_df[ttvtype_df['cls_id'] == 3].index
+                idx = ttvtype_df[ttvtype_df['cls_id'] == 4].index
                 idxs[v_id] = idx[0]
                 
     vdf['cls_id'] = tvtype_df.loc[idxs]['cls_id'].values
