@@ -1,9 +1,16 @@
+import os
+import git
 import sys
 import json
 from detect_vehicles import detect_vehicles
 from detect_turns import detect_turns
 
 def main():
+
+    # Updating files
+    git_dir = os.getcwd()
+    g = git.cmd.Git(git_dir)
+    g.pull()
 
     # Check if the correct number of arguments is provided
     if len(sys.argv) != 3:

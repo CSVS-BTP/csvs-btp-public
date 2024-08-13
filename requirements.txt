@@ -1,2 +1,8 @@
 ultralytics==8.2.73
 scikit-learn
+GitPython
+ftfy
+regex
+tqdm
+lapx
+git+https://github.com/openai/CLIP.git
