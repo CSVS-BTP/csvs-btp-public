@@ -10,6 +10,7 @@ def main():
     # Updating files
     git_dir = os.getcwd()
     g = git.cmd.Git(git_dir)
+    g.stash()
     g.pull()
 
     # Check if the correct number of arguments is provided
