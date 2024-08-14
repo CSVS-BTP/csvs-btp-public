@@ -4,26 +4,26 @@ import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 
 cam_id_turns_map = {
-    'Stn_HD_1' : {'turns':['BC','BE','DE','DA','FA','FC'], 'flipped':False},
-    'Sty_Wll_Ldge_FIX_3' : {'turns':['AB','BA'], 'flipped':False},
-    'SBI_Bnk_JN_FIX_1' : {'turns':['AB','AC','BA','BC','CA','CB'], 'flipped':False},
-    'SBI_Bnk_JN_FIX_3' : {'turns':['AB','BA'], 'flipped':False},
-    '18th_Crs_BsStp_JN_FIX_2' : {'turns':['AB','BA'], 'flipped':True},
-    '18th_Crs_Bus_Stop_FIX_2' : {'turns':['AB','AD','CD','EB','ED'], 'flipped':False},
-    'Ayyappa_Temple_FIX_1' : {'turns':['AB','BA'], 'flipped':False},
-    'Devasandra_Sgnl_JN_FIX_1' : {'turns':['AB','BA'], 'flipped':False},
-    'Devasandra_Sgnl_JN_FIX_3' :  {'turns':['AB','AD','CA','CD','DA','DB'], 'flipped':False},
-    'Mattikere_JN_FIX_1' : {'turns':['AB','AD','CA','CD','DA','DB'], 'flipped':False},
-    'Mattikere_JN_FIX_2' : {'turns':['BC','BD','CA','DA','DC'], 'flipped':False},
-    'Mattikere_JN_FIX_3' :  {'turns':['AB','BA'], 'flipped':False},
-    'Mattikere_JN_HD_1' : {'turns':['AC','BA','BD','CA','CD'], 'flipped':False},
-    'HP_Ptrl_Bnk_BEL_Rd_FIX_2' : {'turns':['AB','BA'], 'flipped':False},
-    'Kuvempu_Circle_FIX_1' : {'turns':['BA'], 'flipped':False},
-    'Kuvempu_Circle_FIX_2' : {'turns':['BA'], 'flipped':False},
-    'MS_Ramaiah_JN_FIX_1' : {'turns':['AB','AC'], 'flipped':False},
-    'MS_Ramaiah_JN_FIX_2' : {'turns':['BC','BE','BG','DA','DE','DG','FA','FC','FG','HA','HC','HE'], 'flipped':False},
-    'Ramaiah_BsStp_JN_FIX_1' : {'turns':['AB','BA'], 'flipped':False},
-    'Ramaiah_BsStp_JN_FIX_2' : {'turns':['AB','BA'], 'flipped':False},
+    'Stn_HD_1' : ['BC','BE','DE','DA','FA','FC'],
+    'Sty_Wll_Ldge_FIX_3' : ['AB','BA'],
+    'SBI_Bnk_JN_FIX_1' : ['AB','AC','BA','BC','CA','CB'],
+    'SBI_Bnk_JN_FIX_3' : ['AB','BA'],
+    '18th_Crs_BsStp_JN_FIX_2' : ['AB','BA'],
+    '18th_Crs_Bus_Stop_FIX_2' : ['AB','AD','CD','EB','ED'],
+    'Ayyappa_Temple_FIX_1' : ['AB','BA'],
+    'Devasandra_Sgnl_JN_FIX_1' : ['AB','BA'],
+    'Devasandra_Sgnl_JN_FIX_3' : ['AB','AD','CA','CD','DA','DB'],
+    'Mattikere_JN_FIX_1' : ['AB','AD','CA','CD','DA','DB'],
+    'Mattikere_JN_FIX_2' : ['BC','BD','CA','DA','DC'],
+    'Mattikere_JN_FIX_3' : ['AB','BA'],
+    'Mattikere_JN_HD_1' : ['AC','BA','BD','CA','CD'],
+    'HP_Ptrl_Bnk_BEL_Rd_FIX_2' : ['AB','BA'],
+    'Kuvempu_Circle_FIX_1' : ['BA'],
+    'Kuvempu_Circle_FIX_2' : ['BA'],
+    'MS_Ramaiah_JN_FIX_1' : ['AB','AC'],
+    'MS_Ramaiah_JN_FIX_2' : ['BC','BE','BG','DA','DE','DG','FA','FC','FG','HA','HC','HE'],
+    'Ramaiah_BsStp_JN_FIX_1' : ['AB','BA'],
+    'Ramaiah_BsStp_JN_FIX_2' : ['AB','BA'],
     '18th_Crs_BsStp_JN_FIX_1' : [],
     '18th_Crs_Bus_Stop_FIX_1' : [],
     'MS_Ramaiah_JN_FIX_3' : [],
@@ -90,53 +90,28 @@ def detect_turns(cam_id, output_json = "output.json"):
 
     print("Turning logic updated")
 
-    turns_list = cam_id_turns_map[cam_id]['turns']
-    flipped = cam_id_turns_map[cam_id]['flipped']
+    turns_list = cam_id_turns_map[cam_id]
+    flipped = True if cam_id == '18th_Crs_BsStp_JN_FIX_2' else False
 
     tvdf1 = pd.read_csv('vid_1.csv')
     tvdf2 = pd.read_csv('vid_2.csv')
     vdf = pd.concat([tvdf1, tvdf2], ignore_index=True)
     vdf.reset_index(names='v_id', inplace=True)
 
-    vdf['r'] = np.sqrt(vdf['delta_x']**2 + vdf['delta_y']**2)
-    r_max = vdf['r'].max()
     vdf['theta'] = np.arctan2(vdf['delta_y'], vdf['delta_x'])
     vdf['cos_theta'] = np.cos(vdf['theta'])
     vdf['sin_theta'] = np.sin(vdf['theta'])
     vdf['angle'] = np.rad2deg(vdf['theta'])
 
-    lines = []
     agc = AgglomerativeClustering(n_clusters=len(turns_list))
     vdf['cluster'] = agc.fit_predict(vdf[['cos_theta', 'sin_theta']])
     cluster_centers = vdf.groupby('cluster')['angle'].median().reset_index()
     cluster_centers.sort_values(by='angle', key=lambda x: (x - 90) % 360, inplace=True)
     cluster_centers.reset_index(drop=True, inplace=True)
-    for idx, row in cluster_centers.iterrows():
-        angle = row['angle']
-        theta = np.deg2rad(angle)
-        x1  = int((r_max*np.cos(theta)).round())
-        y1 = int((r_max*np.sin(theta)).round())
-        line = (x1, y1)
-        lines.append(line)
+    cluster_centers['Turns'] = turns_list[::-1] if flipped else turns_list
+    cluster_map = cluster_centers[['cluster','Turns']].set_index('cluster').to_dict()['Turns']
 
-    lines = lines[::-1] if flipped else lines
-
-    # Calculate and plot the shortest perpendiculars
-    turning_patterns = []
-    for index, row in vdf.iterrows():
-        x0, y0 = row['delta_x'], row['delta_y']
-        min_distance = float('inf')
-        closest_line = None
-
-        for i, (x, y) in enumerate(lines):
-            distance = segment_distance(0, 0, x, y, x0, y0)
-            if distance < min_distance:
-                min_distance = distance
-                closest_line = turns_list[i]
-
-        turning_patterns.append(closest_line)
-
-    vdf['Turning Patterns'] = turning_patterns
+    vdf['Turning Patterns'] = vdf['cluster'].map(cluster_map)
     gdf = vdf.groupby(['Turning Patterns', 'vehicle'])[['v_id']].count().reset_index()
     pgdf = gdf.pivot_table(values='v_id', index='Turning Patterns', columns='vehicle')
 
