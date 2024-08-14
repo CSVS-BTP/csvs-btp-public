@@ -40,7 +40,7 @@ vehicle_class_rmap = {
 
 def detect_vehicles(video_file, csv_file='vehicles.csv'):
     
-    print('git pull in detect_vehicles')
+    # print('git pull in detect_vehicles')
 
     results = model.track(
         source=video_file,

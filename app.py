@@ -8,12 +8,12 @@ def main():
     # print(f'cwd: {os.getcwd()}')
     # print(f'cwd contents: {os.listdir()}')
     # Updating files
-    git_dir = '../csvs-btp-public/'
+    git_dir = '/app/csvs-btp-public/'
     # print(f'git_dir contents: {os.listdir(git_dir)}')
     g = git.cmd.Git(git_dir)
     g.stash()
     g.pull()
-    print('git pull in app')
+    # print('git pull in app')
 
     from detect_vehicles import detect_vehicles
     from detect_turns import detect_turns
