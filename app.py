@@ -10,7 +10,8 @@ def main():
     g = git.cmd.Git(git_dir)
     g.stash()
     g.pull()
-    
+    print('git pull in app')
+
     from detect_vehicles import detect_vehicles
     from detect_turns import detect_turns
 
