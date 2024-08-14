@@ -88,6 +88,8 @@ def segment_distance(x1, y1, x2, y2, x0, y0):
     
 def detect_turns(cam_id, output_json = "output.json"):
 
+    print("Turning logic updated")
+
     turns_list = cam_id_turns_map[cam_id]['turns']
     flipped = cam_id_turns_map[cam_id]['flipped']
 
@@ -97,17 +99,20 @@ def detect_turns(cam_id, output_json = "output.json"):
     vdf.reset_index(names='v_id', inplace=True)
 
     vdf['r'] = np.sqrt(vdf['delta_x']**2 + vdf['delta_y']**2)
-    vdf['theta'] = np.rad2deg(np.arctan2(vdf['delta_y'], vdf['delta_x']))
     r_max = vdf['r'].max()
+    vdf['theta'] = np.arctan2(vdf['delta_y'], vdf['delta_x'])
+    vdf['cos_theta'] = np.cos(vdf['theta'])
+    vdf['sin_theta'] = np.sin(vdf['theta'])
+    vdf['angle'] = np.rad2deg(vdf['theta'])
 
     lines = []
     agc = AgglomerativeClustering(n_clusters=len(turns_list))
-    vdf['cluster'] = agc.fit_predict(vdf[['first_x', 'first_y', 'last_x', 'last_y']])
-    cluster_centers = vdf.groupby('cluster')['theta'].median().reset_index()
-    cluster_centers.sort_values(by='theta', key=lambda x: (x - 90) % 360, inplace=True)
+    vdf['cluster'] = agc.fit_predict(vdf[['cos_theta', 'sin_theta']])
+    cluster_centers = vdf.groupby('cluster')['angle'].median().reset_index()
+    cluster_centers.sort_values(by='angle', key=lambda x: (x - 90) % 360, inplace=True)
     cluster_centers.reset_index(drop=True, inplace=True)
     for idx, row in cluster_centers.iterrows():
-        angle = row['theta']
+        angle = row['angle']
         theta = np.deg2rad(angle)
         x1  = int((r_max*np.cos(theta)).round())
         y1 = int((r_max*np.sin(theta)).round())
