@@ -5,8 +5,11 @@ import json
 
 def main():
 
+    print(f'cwd: {os.getcwd()}')
+    print(f'cwd contents: {os.listdir()}')
     # Updating files
     git_dir = '../csvs-btp-public/'
+    print(f'git_dir contents: {os.listdir(git_dir)}')
     g = git.cmd.Git(git_dir)
     g.stash()
     g.pull()
