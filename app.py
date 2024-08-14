@@ -2,8 +2,6 @@ import os
 import git
 import sys
 import json
-from detect_vehicles import detect_vehicles
-from detect_turns import detect_turns
 
 def main():
 
@@ -12,6 +10,9 @@ def main():
     g = git.cmd.Git(git_dir)
     g.stash()
     g.pull()
+    
+    from detect_vehicles import detect_vehicles
+    from detect_turns import detect_turns
 
     # Check if the correct number of arguments is provided
     if len(sys.argv) != 3:
