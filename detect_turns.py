@@ -28,6 +28,12 @@ cam_id_turns_map = {
     '18th_Crs_Bus_Stop_FIX_1' : [],
     'MS_Ramaiah_JN_FIX_3' : [],
     'Udayagiri_JN_FIX_2' : [],
+    'Dari_Anjaneya_Temple': ['BC','BD','AD','AC','CD'],
+    'Nanjudi_House': ['AC','BC','CA','CB'],
+    'Buddha_Vihara_Temple': ['AB','BA'],
+    'Sundaranagar_Entrance': ['AB','BA'],
+    'ISRO_Junction': ['AB','AC','BC','BD'],
+    '80ft_Road': ['AB','BA'],
 }
 
 vehicle_class_rmap = {
