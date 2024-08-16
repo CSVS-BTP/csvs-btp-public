@@ -13,24 +13,14 @@ else:
     print("GPU is not available")
     device = torch.device("cpu")
 
-# Load a pretrained YOLOv8l-worldv2 model
-model = YOLOWorld("yolov8l-worldv2.pt")
+# Load a pretrained YOLOv8x-worldv2 model
+model = YOLOWorld("yolov8x-worldv2.pt")
 
-print('Vehicle list updated')
+print('Model updated')
 vehicle_list = [
     'vehicle/Bicycle',
     'vehicle/Bus',
-    'vehicle/Bus/Public (Green)',
-    'vehicle/Bus/Public (Blue)',
-    'vehicle/Bus/Public (Orange)',
-    'vehicle/Bus/Public (Red)',
-    'vehicle/Bus/Public (White)',
     'vehicle/Car',
-    'vehicle/Car/Small',
-    'vehicle/Car/Sedan',
-    'vehicle/Car/Hatchback',
-    'vehicle/Car/SUV',
-    'vehicle/Car/MUV',
     'vehicle/LCV',
     'vehicle/LCV/Ambulance',
     'vehicle/LCV/Police-Van',
@@ -40,9 +30,6 @@ vehicle_list = [
     'vehicle/LCV/Mini-Van',
     'vehicle/LCV/Tempo-Traveller',
     'vehicle/Three Wheeler',
-    'vehicle/Three Wheeler/Public(Yellow)',
-    'vehicle/Three Wheeler/Private (Blue)',
-    'vehicle/Three Wheeler/Goods-Transporter',
     'vehicle/Truck',
     'vehicle/Truck/Goods-Transporter',
     'vehicle/Truck/Lorry',
