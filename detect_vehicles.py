@@ -20,10 +20,10 @@ print('Vehicle list updated')
 vehicle_list = [
     'Bicycle',
     'Bus',
-    'Car/Car Small/Car Sedan/Car Hatchback/Car SUV/Car MUV',
-    'LCV/Ambulance/Police Van/Patrol Jeep/Mini Bus/Mini Van',
+    'Car',
+    'LCV',
     'Three Wheeler',
-    'Truck/Goods Transporter/Lorry/Garbage Truck/Water Tanker',
+    'Truck',
     'Two Wheeler',
 ]
 model.set_classes(vehicle_list)
