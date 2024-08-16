@@ -16,14 +16,42 @@ else:
 # Load a pretrained YOLOv8l-worldv2 model
 model = YOLOWorld("yolov8l-worldv2.pt")
 
+print('Vehicle list updated')
 vehicle_list = [
     'vehicle/Bicycle',
     'vehicle/Bus',
+    'vehicle/Bus/Public (Green)',
+    'vehicle/Bus/Public (Blue)',
+    'vehicle/Bus/Public (Orange)',
+    'vehicle/Bus/Public (Red)',
+    'vehicle/Bus/Public (White)',
     'vehicle/Car',
-    'vehicle/Minivan',
+    'vehicle/Car/Small',
+    'vehicle/Car/Sedan',
+    'vehicle/Car/Hatchback',
+    'vehicle/Car/SUV',
+    'vehicle/Car/MUV',
+    'vehicle/LCV',
+    'vehicle/LCV/Ambulance',
+    'vehicle/LCV/Police-Van',
+    'vehicle/LCV/Patrol-Jeep',
+    'vehicle/LCV/Goods-Transporter',
+    'vehicle/LCV/Mini-Bus',
+    'vehicle/LCV/Mini-Van',
+    'vehicle/LCV/Tempo-Traveller',
     'vehicle/Three Wheeler',
+    'vehicle/Three Wheeler/Public(Yellow)',
+    'vehicle/Three Wheeler/Private (Blue)',
+    'vehicle/Three Wheeler/Goods-Transporter',
     'vehicle/Truck',
+    'vehicle/Truck/Goods-Transporter',
+    'vehicle/Truck/Lorry',
+    'vehicle/Truck/Garbage-Truck',
+    'vehicle/Truck/Water-Tanker',
     'vehicle/Two Wheeler',
+    'vehicle/Two Wheeler/Scooter',
+    'vehicle/Two Wheeler/Motorbike',
+    'vehicle/Two Wheeler/EV',
 ]
 model.set_classes(vehicle_list)
 
@@ -37,6 +65,9 @@ vehicle_class_rmap = {
     5:'Truck',
     6:'Two Wheeler',
 } 
+
+vehicle_class_map = {v:k for k,v in vehicle_class_rmap.items()}
+cls_id_map = {idx:vehicle_class_map[vehicle.split('/')[1]] for idx, vehicle in enumerate(vehicle_list)}
 
 def detect_vehicles(video_file, csv_file='vehicles.csv'):
     
@@ -70,7 +101,7 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
             features_dict = {
                 "fn": fn,
                 "v_id": v_id,
-                "cls_id": cls_id,
+                "cls_id": cls_id_map[cls_id],
                 "cn_x": x,
                 "cn_y": y,
             }
