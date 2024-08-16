@@ -18,13 +18,13 @@ model = YOLOWorld("yolov8x-worldv2.pt")
 
 print('Vehicle list updated')
 vehicle_list = [
-    'Bicycle',
-    'Bus',
-    'Car',
-    'LCV',
-    'Three Wheeler',
-    'Truck',
-    'Two Wheeler',
+    'vehicle/Bicycle',
+    'vehicle/Bus',
+    'vehicle/Car',
+    'vehicle/LCV',
+    'vehicle/Three Wheeler',
+    'vehicle/Truck',
+    'vehicle/Two Wheeler',
 ]
 model.set_classes(vehicle_list)
 
@@ -40,7 +40,7 @@ vehicle_class_rmap = {
 } 
 
 vehicle_class_map = {v:k for k,v in vehicle_class_rmap.items()}
-cls_id_map = {idx:vehicle_class_map[vehicle.split('/')[0]] for idx, vehicle in enumerate(vehicle_list)}
+cls_id_map = {idx:vehicle_class_map[vehicle.split('/')[1]] for idx, vehicle in enumerate(vehicle_list)}
 
 def detect_vehicles(video_file, csv_file='vehicles.csv'):
     
