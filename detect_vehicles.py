@@ -16,29 +16,15 @@ else:
 # Load a pretrained YOLOv8x-worldv2 model
 model = YOLOWorld("yolov8x-worldv2.pt")
 
-print('Model updated')
+print('Vehicle list updated')
 vehicle_list = [
     'vehicle/Bicycle',
     'vehicle/Bus',
     'vehicle/Car',
     'vehicle/LCV',
-    'vehicle/LCV/Ambulance',
-    'vehicle/LCV/Police-Van',
-    'vehicle/LCV/Patrol-Jeep',
-    'vehicle/LCV/Goods-Transporter',
-    'vehicle/LCV/Mini-Bus',
-    'vehicle/LCV/Mini-Van',
-    'vehicle/LCV/Tempo-Traveller',
     'vehicle/Three Wheeler',
     'vehicle/Truck',
-    'vehicle/Truck/Goods-Transporter',
-    'vehicle/Truck/Lorry',
-    'vehicle/Truck/Garbage-Truck',
-    'vehicle/Truck/Water-Tanker',
     'vehicle/Two Wheeler',
-    'vehicle/Two Wheeler/Scooter',
-    'vehicle/Two Wheeler/Motorbike',
-    'vehicle/Two Wheeler/EV',
 ]
 model.set_classes(vehicle_list)
 
