@@ -45,56 +45,8 @@ vehicle_class_rmap = {
     5:'Truck',
     6:'Two Wheeler',
 } 
-
-# Function to calculate perpendicular distance from a point to a line segment
-def segment_distance(x1, y1, x2, y2, x0, y0):
-    # Vector AB
-    AB = np.array([x2 - x1, y2 - y1])
-    # Vector AP
-    AP = np.array([x0 - x1, y0 - y1])
-    # Vector BP
-    BP = np.array([x0 - x2, y0 - y2])
-    
-    # Dot products
-    AB_AB = np.dot(AB, AB)
-    AB_AP = np.dot(AB, AP)
-    AB_BP = np.dot(AB, BP)
-    
-    if AB_AB == 0:
-        return np.linalg.norm(AP)  # A and B are the same point
-    t = AB_AP / AB_AB
-    if t < 0.0:
-        return np.linalg.norm(AP)  # Closest to A
-    elif t > 1.0:
-        return np.linalg.norm(BP)  # Closest to B
-    else:
-        nearest = np.array([x1, y1]) + t * AB
-        return np.linalg.norm(nearest - np.array([x0, y0]))
-
-# Function to calculate perpendicular distance from a point to a line segment
-def segment_distance(x1, y1, x2, y2, x0, y0):
-    AB = np.array([x2 - x1, y2 - y1])
-    AP = np.array([x0 - x1, y0 - y1])
-    BP = np.array([x0 - x2, y0 - y2])
-    
-    AB_AB = np.dot(AB, AB)
-    AB_AP = np.dot(AB, AP)
-    AB_BP = np.dot(AB, BP)
-    
-    if AB_AB == 0:
-        return np.linalg.norm(AP)
-    t = AB_AP / AB_AB
-    if t < 0.0:
-        return np.linalg.norm(AP)
-    elif t > 1.0:
-        return np.linalg.norm(BP)
-    else:
-        nearest = np.array([x1, y1]) + t * AB
-        return np.linalg.norm(nearest - np.array([x0, y0]))
     
 def detect_turns(cam_id, output_json = "output.json"):
-
-    print("Turning logic updated")
 
     turns_list = cam_id_turns_map[cam_id]
     flipped = True if cam_id == '18th_Crs_BsStp_JN_FIX_2' else False
