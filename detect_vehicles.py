@@ -1,5 +1,5 @@
 import torch
-from ultralytics import YOLOWorld
+from ultralytics import YOLO
 import pandas as pd
 import numpy as np
 
@@ -14,19 +14,7 @@ else:
     device = torch.device("cpu")
 
 # Load a pretrained YOLOv8x-worldv2 model
-model = YOLOWorld("yolov8x-worldv2.pt")
-
-print('Vehicle list updated')
-vehicle_list = [
-    'vehicle/Bicycle',
-    'vehicle/Bus',
-    'vehicle/Car',
-    'vehicle/LCV',
-    'vehicle/Three Wheeler',
-    'vehicle/Truck',
-    'vehicle/Two Wheeler',
-]
-model.set_classes(vehicle_list)
+model = YOLO("custom_yolov10s.pt")
 
 # Define vehicle class map and IDs
 vehicle_class_rmap = {
@@ -39,15 +27,12 @@ vehicle_class_rmap = {
     6:'Two Wheeler',
 } 
 
-vehicle_class_map = {v:k for k,v in vehicle_class_rmap.items()}
-cls_id_map = {idx:vehicle_class_map[vehicle.split('/')[1]] for idx, vehicle in enumerate(vehicle_list)}
-
 def detect_vehicles(video_file, csv_file='vehicles.csv'):
     
     results = model.track(
         source=video_file,
         device=device,
-        imgsz = (1080,1920),
+        # imgsz = (1080,1920),
         conf = 0.1,
         iou = 0.4,
         max_det=100,
@@ -74,7 +59,7 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
             features_dict = {
                 "fn": fn,
                 "v_id": v_id,
-                "cls_id": cls_id_map[cls_id],
+                "cls_id": cls_id,
                 "cn_x": x,
                 "cn_y": y,
             }
@@ -103,14 +88,6 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
 
     tvtype_df = idf.groupby(['v_id'])['cls_id'].value_counts().reset_index()
     idxs = tvtype_df.groupby(['v_id'])['count'].idxmax()
-
-    for v_id in tvtype_df['v_id'].unique():
-        ttvtype_df = tvtype_df.loc[tvtype_df['v_id']==v_id]
-        cls_auto = ttvtype_df['cls_id'] == 4
-        if cls_auto.any():
-            if ttvtype_df[cls_auto]['count'].iloc[0] > 0:
-                idx = ttvtype_df[ttvtype_df['cls_id'] == 4].index
-                idxs[v_id] = idx[0]
                 
     vdf['cls_id'] = tvtype_df.loc[idxs]['cls_id'].values
     vdf['vehicle'] = vdf['cls_id'].map(vehicle_class_rmap)
