@@ -13,9 +13,9 @@ else:
     print("GPU is not available")
     device = torch.device("cpu")
 
-print('New Model')
-# Load a pretrained YOLOv8x-worldv2 model
-model = YOLO("custom_yolov10s.pt")
+print('YOLO Model')
+# Load a pretrained YOLOv8s-worldv2 model
+model = YOLO("best.pt")
 
 # Define vehicle class map and IDs
 vehicle_class_rmap = {
@@ -34,7 +34,7 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
         source=video_file,
         device=device,
         imgsz = (640,1152),
-        conf = 0.025,
+        conf = 0.05,
         iou = 0.5,
         max_det=100,
         agnostic_nms = True,

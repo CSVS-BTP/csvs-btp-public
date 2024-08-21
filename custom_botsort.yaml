@@ -2,10 +2,10 @@
 # Default YOLO tracker settings for BoT-SORT tracker https://github.com/NirAharon/BoT-SORT
 
 tracker_type: botsort # tracker type, ['botsort', 'bytetrack']
-track_high_thresh: 0.25 # threshold for the first association
-track_low_thresh: 0.025 # threshold for the second association
-new_track_thresh: 0.6 # threshold for init new track if the detection does not match any tracks
-track_buffer: 750 # buffer to calculate the time when to remove tracks
+track_high_thresh: 0.45 # threshold for the first association
+track_low_thresh: 0.05 # threshold for the second association
+new_track_thresh: 0.5 # threshold for init new track if the detection does not match any tracks
+track_buffer: 50 # buffer to calculate the time when to remove tracks
 match_thresh: 0.7 # threshold for matching tracks
 # min_box_area: 10  # threshold for min box areas(for tracker evaluation, not used for now)
 # mot20: False  # for tracker evaluation(not used for now)
