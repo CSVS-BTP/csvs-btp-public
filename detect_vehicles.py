@@ -13,7 +13,7 @@ else:
     print("GPU is not available")
     device = torch.device("cpu")
 
-print('Model updated')
+print('New Model')
 # Load a pretrained YOLOv8x-worldv2 model
 model = YOLO("custom_yolov10s.pt")
 
@@ -33,9 +33,9 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
     results = model.track(
         source=video_file,
         device=device,
-        # imgsz = (1080,1920),
-        conf = 0.1,
-        iou = 0.4,
+        imgsz = (640,1152),
+        conf = 0.025,
+        iou = 0.5,
         max_det=100,
         agnostic_nms = True,
         vid_stride = 1,
