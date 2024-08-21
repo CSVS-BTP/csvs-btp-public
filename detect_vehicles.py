@@ -13,6 +13,7 @@ else:
     print("GPU is not available")
     device = torch.device("cpu")
 
+print('Model updated')
 # Load a pretrained YOLOv8x-worldv2 model
 model = YOLO("custom_yolov10s.pt")
 
