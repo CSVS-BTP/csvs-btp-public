@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 
+print('turns list update')
+
 cam_id_turns_map = {
     'Stn_HD_1' : ['BC','BE','DE','DA','FA','FC'],
     'Sty_Wll_Ldge_FIX_3' : ['AB','BA'],
@@ -49,7 +51,7 @@ vehicle_class_rmap = {
 def detect_turns(cam_id, output_json = "output.json"):
 
     turns_list = cam_id_turns_map[cam_id]
-    flipped = True if cam_id == '18th_Crs_BsStp_JN_FIX_2' else False
+    # flipped = True if cam_id == '18th_Crs_BsStp_JN_FIX_2' else False
 
     tvdf1 = pd.read_csv('vid_1.csv')
     tvdf2 = pd.read_csv('vid_2.csv')
@@ -66,7 +68,8 @@ def detect_turns(cam_id, output_json = "output.json"):
     cluster_centers = vdf.groupby('cluster')['angle'].median().reset_index()
     cluster_centers.sort_values(by='angle', key=lambda x: (x - 90) % 360, inplace=True)
     cluster_centers.reset_index(drop=True, inplace=True)
-    cluster_centers['Turns'] = turns_list[::-1] if flipped else turns_list
+    cluster_centers['Turns'] = turns_list
+    # cluster_centers['Turns'] = turns_list[::-1] if flipped else turns_list
     cluster_map = cluster_centers[['cluster','Turns']].set_index('cluster').to_dict()['Turns']
 
     vdf['Turning Patterns'] = vdf['cluster'].map(cluster_map)
