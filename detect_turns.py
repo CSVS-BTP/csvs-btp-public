@@ -94,7 +94,7 @@ def detect_turns(cam_id, output_json = "output.json"):
     fn_min = 0
     fn_max = vdf['fn'].max()
     fn_max = round(fn_max / 100)*100
-    parts = 6
+    parts = 30
     step = fn_max//parts
 
     mcounts = {}
@@ -117,7 +117,7 @@ def detect_turns(cam_id, output_json = "output.json"):
         mcounts[idx] = mfdf.values.reshape(-1)
 
     mdf = pd.DataFrame.from_dict(mcounts, orient='columns')
-    degree = 3
+    degree = 1
 
     pcounts = {}
     for idx, row in mdf.iterrows():
