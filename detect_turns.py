@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.linear_model import LinearRegression
-
-print('turns list update')
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import Pipeline
 
 cam_id_turns_map = {
     'Stn_HD_1' : ['BC','BE','DE','DA','FA','FC'],
@@ -117,16 +117,20 @@ def detect_turns(cam_id, output_json = "output.json"):
         mcounts[idx] = mfdf.values.reshape(-1)
 
     mdf = pd.DataFrame.from_dict(mcounts, orient='columns')
+    degree = 2
 
     pcounts = {}
     for idx, row in mdf.iterrows():
         X = row.index.values.reshape(-1, 1)
         y = row.values
-        X_pred = X + parts + 1
+        X_pred = (X + parts + 1).reshape(-1, 1)
         
         # Create the model
-        model = LinearRegression()
-
+        model = Pipeline([
+            ('poly_features', PolynomialFeatures(degree=degree)),
+            ('linear_regression', LinearRegression())
+        ])
+        
         # Train the model
         model.fit(X, y)
         y_pred = model.predict(X_pred)
