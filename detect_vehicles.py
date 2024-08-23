@@ -82,7 +82,7 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
     vdf = pd.merge(vidfx, vidfy, how='inner', on='v_id', suffixes=['_x', '_y'])
     vdf['delta_x'] = vdf['first_x'] - vdf['last_x']
     vdf['delta_y'] = vdf['first_y'] - vdf['last_y']
-    vids = vdf.loc[(vdf['delta_x'].abs()>45) & (vdf['delta_x'].abs()>80)]['v_id']
+    vids = vdf.loc[(vdf['delta_x'].abs()>5) & (vdf['delta_x'].abs()>5)]['v_id']
 
     vdf = vdf.loc[vdf['v_id'].isin(vids)]
     idf = idf.loc[idf['v_id'].isin(vids)]
