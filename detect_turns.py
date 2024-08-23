@@ -67,7 +67,7 @@ def detect_turns(cam_id, output_json = "output.json"):
     cluster_centers = vdf.groupby('cluster')['angle'].median().reset_index()
     cluster_centers.sort_values(by='angle', key=lambda x: (x - 90) % 360, inplace=True)
     cluster_centers.reset_index(drop=True, inplace=True)
-    cluster_centers['Turns'] = turns_list[::-1] if cam_id == '18th_Crs_BsStp_JN_FIX_2' else turns_list 
+    cluster_centers['Turns'] = turns_list
     cluster_map = cluster_centers[['cluster','Turns']].set_index('cluster').to_dict()['Turns']
 
     vdf['Turning Patterns'] = vdf['cluster'].map(cluster_map)
