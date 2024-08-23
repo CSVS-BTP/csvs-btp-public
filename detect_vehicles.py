@@ -14,7 +14,7 @@ else:
     device = torch.device("cpu")
 
 print('YOLO Model')
-# Load a pretrained YOLOv10s model
+# Load a pretrained YOLOv8s model
 model = YOLO("best.pt")
 
 # Define vehicle class map and IDs
