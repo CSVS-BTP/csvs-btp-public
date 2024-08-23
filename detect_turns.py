@@ -117,7 +117,7 @@ def detect_turns(cam_id, output_json = "output.json"):
         mcounts[idx] = mfdf.values.reshape(-1)
 
     mdf = pd.DataFrame.from_dict(mcounts, orient='columns')
-    degree = 2
+    degree = 3
 
     pcounts = {}
     for idx, row in mdf.iterrows():
@@ -130,7 +130,7 @@ def detect_turns(cam_id, output_json = "output.json"):
             ('poly_features', PolynomialFeatures(degree=degree)),
             ('linear_regression', LinearRegression())
         ])
-        
+
         # Train the model
         model.fit(X, y)
         y_pred = model.predict(X_pred)
