@@ -13,8 +13,8 @@ else:
     print("GPU is not available")
     device = torch.device("cpu")
 
-print('YOLO Model New')
-# Load a pretrained YOLOv8s model
+print('YOLO Model')
+# Load a pretrained YOLOv10s model
 model = YOLO("best.pt")
 
 # Define vehicle class map and IDs
