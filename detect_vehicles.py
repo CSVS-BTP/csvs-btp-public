@@ -79,13 +79,15 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
 
     vidfx = idf.groupby('v_id')['cn_x'].aggregate(['first','last']).reset_index()
     vidfy = idf.groupby('v_id')['cn_y'].aggregate(['first','last']).reset_index()
+    vidft = idf.groupby('v_id')['fn'].median().reset_index()
     vdf = pd.merge(vidfx, vidfy, how='inner', on='v_id', suffixes=['_x', '_y'])
+    vdf = pd.merge(vdf, vidft, how='inner', on='v_id')
     vdf['delta_x'] = vdf['first_x'] - vdf['last_x']
     vdf['delta_y'] = vdf['first_y'] - vdf['last_y']
-    # vids = vdf.loc[(vdf['delta_x'].abs()>5) & (vdf['delta_x'].abs()>5)]['v_id']
+    vids = vdf.loc[(vdf['delta_x'].abs()>5) & (vdf['delta_x'].abs()>5)]['v_id']
 
-    # vdf = vdf.loc[vdf['v_id'].isin(vids)]
-    # idf = idf.loc[idf['v_id'].isin(vids)]
+    vdf = vdf.loc[vdf['v_id'].isin(vids)]
+    idf = idf.loc[idf['v_id'].isin(vids)]
 
     tvtype_df = idf.groupby(['v_id'])['cls_id'].value_counts().reset_index()
     idxs = tvtype_df.groupby(['v_id'])['count'].idxmax()
@@ -93,6 +95,6 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
     vdf['cls_id'] = tvtype_df.loc[idxs]['cls_id'].values
     vdf['vehicle'] = vdf['cls_id'].map(vehicle_class_rmap)
 
-    cols = ['first_x', 'first_y', 'last_x', 'last_y', 'delta_x', 'delta_y', 'vehicle']
+    cols = ['delta_x', 'delta_y', 'vehicle', 'fn']
     tvdf = vdf[cols]
     tvdf.to_csv(csv_file, index=False)

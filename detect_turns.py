@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
+from sklearn.linear_model import LinearRegression
 
 print('turns list update')
 
@@ -54,6 +55,7 @@ def detect_turns(cam_id, output_json = "output.json"):
 
     tvdf1 = pd.read_csv('vid_1.csv')
     tvdf2 = pd.read_csv('vid_2.csv')
+    tvdf2['fn'] += tvdf1['fn'].max()
     vdf = pd.concat([tvdf1, tvdf2], ignore_index=True)
     vdf.reset_index(names='v_id', inplace=True)
 
@@ -88,8 +90,58 @@ def detect_turns(cam_id, output_json = "output.json"):
     fdf = pgdf.loc[turns_list][vtypes].fillna(0).astype(int)
 
     counts = fdf.T.to_dict()
+
+    fn_min = 0
+    fn_max = vdf['fn'].max()
+    fn_max = round(fn_max / 100)*100
+    parts = 6
+    step = fn_max//parts
+
+    mcounts = {}
+    for idx, fn in enumerate(np.arange(fn_min, fn_max, step)):
+        mvdf = vdf.loc[(vdf['fn'] > fn) & (vdf['fn'] <= fn + step)].copy()
+        mgdf = mvdf.groupby(['Turning Patterns', 'vehicle'])[['v_id']].count().reset_index()
+        mpgdf = mgdf.pivot_table(values='v_id', index='Turning Patterns', columns='vehicle')
+
+        for vtype in vtypes:
+            if vtype not in mpgdf.columns:
+                mpgdf[vtype] = np.nan 
+
+        mpgdf = mpgdf.T
+        for turn in turns_list:
+            if turn not in mpgdf.columns:
+                mpgdf[turn] = np.nan
+        mpgdf = mpgdf.fillna(0).T 
+
+        mfdf = mpgdf.loc[turns_list][vtypes].fillna(0).astype(int)
+        mcounts[idx] = mfdf.values.reshape(-1)
+
+    mdf = pd.DataFrame.from_dict(mcounts, orient='columns')
+
+    pcounts = {}
+    for idx, row in mdf.iterrows():
+        X = row.index.values.reshape(-1, 1)
+        y = row.values
+        X_pred = X + parts + 1
+        
+        # Create the model
+        model = LinearRegression()
+
+        # Train the model
+        model.fit(X, y)
+        y_pred = model.predict(X_pred)
+        pcounts[idx] = y_pred
+
+    pdf = pd.DataFrame.from_dict(pcounts, orient='index')
+    pdf['pred'] = pdf.sum(axis=1).astype(int)
+    pred = pdf['pred'].values
+    pred[pred<0] = 0
+
+    pred_df = pd.DataFrame(pred.reshape(len(turns_list),len(vtypes)), index=turns_list, columns=vtypes)
+    pred_counts = pred_df.T.to_dict()
+
     # Predicting counts for future where N knowns = N unknowns is currently not known in mathematics
-    output = {cam_id:{"Cumulative Counts":counts, "Predicted Counts":counts}}
+    output = {cam_id:{"Cumulative Counts":counts, "Predicted Counts":pred_counts}}
 
     # Writing to a JSON file
     with open(output_json, 'w') as file:
