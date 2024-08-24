@@ -94,7 +94,7 @@ def detect_turns(cam_id, output_json = "output.json"):
     fn_min = 0
     fn_max = vdf['fn'].max()
     fn_max = round(fn_max / 100)*100
-    parts = 30
+    parts = 15
     step = fn_max//parts
 
     mcounts = {}
