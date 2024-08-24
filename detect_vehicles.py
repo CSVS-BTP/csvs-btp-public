@@ -13,7 +13,6 @@ else:
     print("GPU is not available")
     device = torch.device("cpu")
 
-print('YOLO Model')
 # Load a pretrained YOLOv8s model
 model = YOLO("best.pt")
 
@@ -73,7 +72,7 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
     idf['v_id'] = idf['v_id'].astype(float)
 
     tdf_drop = idf.groupby('v_id')['fn'].count().reset_index()
-    vdrop = tdf_drop.loc[tdf_drop['fn'] < 2]['v_id'].values.tolist()
+    vdrop = tdf_drop.loc[tdf_drop['fn'] < 2]['v_id'].values.tolist() # minimum of 2 instances filter
     idf.drop(idf.loc[idf['v_id'].isin(vdrop + [np.nan])].index, inplace=True)
     idf.reset_index(drop=True, inplace=True)
 
@@ -84,7 +83,7 @@ def detect_vehicles(video_file, csv_file='vehicles.csv'):
     vdf = pd.merge(vdf, vidft, how='inner', on='v_id')
     vdf['delta_x'] = vdf['first_x'] - vdf['last_x']
     vdf['delta_y'] = vdf['first_y'] - vdf['last_y']
-    vids = vdf.loc[(vdf['delta_x'].abs()>5) & (vdf['delta_x'].abs()>5)]['v_id']
+    vids = vdf.loc[(vdf['delta_x'].abs()>5) & (vdf['delta_x'].abs()>5)]['v_id'] # Ignore vehicles which haven't moved at least 5 pixels
 
     vdf = vdf.loc[vdf['v_id'].isin(vids)]
     idf = idf.loc[idf['v_id'].isin(vids)]
