@@ -1,9 +1,3 @@
-import subprocess
-command = ["python3", "-m", "pip", "install", "statsmodels"]
-
-# Run the command
-result = subprocess.run(command, capture_output=True, text=True)
-
 import json
 import pandas as pd
 import numpy as np
