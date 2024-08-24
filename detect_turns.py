@@ -1,10 +1,18 @@
+import subprocess
+command = ["python3", "-m", "pip", "install", "statsmodels"]
+
+# Run the command
+result = subprocess.run(command, capture_output=True, text=True)
+
 import json
 import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.pipeline import Pipeline
+from statsmodels.tsa.arima.model import ARIMA
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings("ignore")
 
 cam_id_turns_map = {
     'Stn_HD_1' : ['BC','BE','DE','DA','FA','FC'],
@@ -117,24 +125,24 @@ def detect_turns(cam_id, output_json = "output.json"):
         mcounts[idx] = mfdf.values.reshape(-1)
 
     mdf = pd.DataFrame.from_dict(mcounts, orient='columns')
-    degree = 1
+    degree = 3
 
     pcounts = {}
-    for idx, row in mdf.iterrows():
-        X = row.index.values.reshape(-1, 1)
-        y = row.values
-        X_pred = (X + parts + 1).reshape(-1, 1)
-        
-        # Create the model
-        model = Pipeline([
-            ('poly_features', PolynomialFeatures(degree=degree)),
-            ('linear_regression', LinearRegression())
-        ])
+    # Parameters for ARIMA (p, d, q)
+    order = (1, 1, 1)  # You can adjust the p, d, q parameters according to your data
 
-        # Train the model
-        model.fit(X, y)
-        y_pred = model.predict(X_pred)
-        pcounts[idx] = y_pred
+    for idx, row in mdf.iterrows():
+        y = row.values
+        
+        # Fit the ARIMA model
+        model = ARIMA(y, order=order)
+        model_fit = model.fit()
+        
+        # Forecast the next 'parts + 1' points
+        forecast = model_fit.forecast(steps=parts + 1)
+        
+        # Store the predictions in pcounts
+        pcounts[idx] = forecast
 
     pdf = pd.DataFrame.from_dict(pcounts, orient='index')
     pdf['pred'] = pdf.sum(axis=1).astype(int)
