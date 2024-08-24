@@ -1,5 +1,6 @@
 ultralytics==8.2.73
 scikit-learn
+statsmodels
 GitPython
 ftfy
 regex

@@ -43,8 +43,7 @@ cam_id_turns_map = {
     'Nanjudi_House': ['CA','CB','BC','AC'],
     'Buddha_Vihara_Temple': ['AB','BA'],
     'Sundaranagar_Entrance': ['AB','BA'],
-    'ISRO_Junction': ['BC','BD','AB','AC'],
-    # 'ISRO_Junction': ['AC','AB','BD','BC'],
+    'ISRO_Junction': ['AC','AB','BD','BC'],
     '80ft_Road': ['BA','AB'],
 }
 
@@ -103,7 +102,7 @@ def detect_turns(cam_id, output_json = "output.json"):
     fn_min = 0
     fn_max = vdf['fn'].max()
     fn_max = round(fn_max / 100)*100
-    parts = 30
+    parts = 15
     step = fn_max//parts
 
     mcounts = {}
