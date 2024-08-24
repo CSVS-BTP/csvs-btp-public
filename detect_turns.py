@@ -43,7 +43,7 @@ cam_id_turns_map = {
     'Nanjudi_House': ['AC','BC','CA','CB'],
     'Buddha_Vihara_Temple': ['AB','BA'],
     'Sundaranagar_Entrance': ['AB','BA'],
-    'ISRO_Junction': ['AC','AB','BC','BD'],
+    'ISRO_Junction': ['AC','AB','BD','BC'],
     '80ft_Road': ['AB','BA'],
 }
 
