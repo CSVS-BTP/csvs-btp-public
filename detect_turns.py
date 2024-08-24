@@ -125,7 +125,6 @@ def detect_turns(cam_id, output_json = "output.json"):
         mcounts[idx] = mfdf.values.reshape(-1)
 
     mdf = pd.DataFrame.from_dict(mcounts, orient='columns')
-    degree = 3
 
     pcounts = {}
     # Parameters for ARIMA (p, d, q)
