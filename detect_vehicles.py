@@ -84,6 +84,12 @@ cam_id_turns_map = {
 
 def detect_vehicles(cam_id, video_file):
 
+    vcam_id = video_file.split('/')[-1].split('.')[0]
+    print(vcam_id)
+    if vcam_id not in cam_id_turns_map:
+        cam_id_turns_map[vcam_id] = ['AB', 'BA']
+    cam_id_turns_map[cam_id] = cam_id_turns_map[vcam_id]
+
     csv_file=f'{cam_id}.csv'
     
     results = model.track(
