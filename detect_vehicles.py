@@ -148,8 +148,8 @@ def detect_vehicles(cam_id, video_file):
     idf.drop(idf.loc[idf['v_id'].isin(vdrop + [np.nan])].index, inplace=True)
     idf.reset_index(drop=True, inplace=True)
 
-    vidfx = idf.groupby('v_id')['cn_x'].aggregate(['first','last']).reset_index()
-    vidfy = idf.groupby('v_id')['cn_y'].aggregate(['first','last']).reset_index()
+    vidfx = idf.groupby('v_id')['x'].aggregate(['first','last']).reset_index()
+    vidfy = idf.groupby('v_id')['y'].aggregate(['first','last']).reset_index()
     vidft = idf.groupby('v_id')['fn'].median().astype(int).reset_index()
     vdf = pd.merge(vidfx, vidfy, how='inner', on='v_id', suffixes=['_x', '_y'])
     vdf = pd.merge(vdf, vidft, how='inner', on='v_id')
