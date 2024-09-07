@@ -39,7 +39,7 @@ def pair_buckets_with_reuse(bucket1, bucket2):
 
 def reid_vehicles(cam_ids, videos):
 
-    output_dir = './CSVS'
+    output_dir = '/app/data/CSVS'
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
