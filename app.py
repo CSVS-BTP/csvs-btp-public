@@ -14,12 +14,13 @@ def main():
     from reid_vehicles import reid_vehicles
 
     # Check if the correct number of arguments is provided
-    if len(sys.argv) != 2:
-        print("Usage: python3 app.py <input_file.json>")
+    if len(sys.argv) != 3:
+        print("Usage: python3 app.py <input_file.json> <app/data/CSVS>")
         sys.exit(1)
 
     # Get the arguments
     input_file = sys.argv[1]
+    output_dir = sys.argv[2]
     print(f"input file: {input_file}")
     
     with open(input_file, 'r') as file:
@@ -36,7 +37,7 @@ def main():
         detect_vehicles(cam_id, video)
         print(f"{cam_id} processed")
 
-    reid_vehicles(cam_ids, videos)
+    reid_vehicles(cam_ids, videos, output_dir)
 
 if __name__ == "__main__":
     main()
