@@ -94,7 +94,7 @@ def reid_vehicles(cam_ids, videos, output_dir = '/app/data/CSVS'):
                         v2 = row['v_id_2']
                         v1t = row['v_idt_1']
                         v2t = row['v_idt_2']
-                        if v1 not in v1s and v2 not in v2s and abs(v1t-v2t) < 30:
+                        if v1 not in v1s and v2 not in v2s and abs(v1t-v2t) < 10:
                             v1s.append(v1)
                             v2s.append(v2)
                             indices.append(idx)
