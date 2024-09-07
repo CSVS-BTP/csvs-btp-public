@@ -84,7 +84,7 @@ def reid_vehicles(cam_ids, videos, output_dir = '/app/data/CSVS'):
                     dfm = pd.merge(df1_tp_i[scols], df2_tp_j[scols], how='inner', on=['cls_id'], suffixes=['_1', '_2'])
                     dfm['similarity'] = dfm.apply(lambda x: torch.nn.functional.cosine_similarity(x['features_1'], x['features_2'], dim=0).item(), axis=1).round(2)
                     dfm.drop(columns=['features_1', 'features_2'], inplace=True)
-                    dfm = dfm.loc[dfm['similarity'] > 0.5].copy()
+                    dfm = dfm.loc[dfm['similarity'] > 0.45].copy()
                     dfm.sort_values(by=['similarity', 'v_id_1', 'v_id_2'], ascending=[False, True, True], inplace=True)
                     v1s = []
                     v2s = []
