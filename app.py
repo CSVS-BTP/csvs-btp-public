@@ -1,14 +1,7 @@
-import git
 import sys
 import json
 
 def main():
-
-    # Updating files
-    git_dir = '/app/csvs-btp-public/'
-    g = git.cmd.Git(git_dir)
-    g.stash()
-    g.pull()
 
     from detect_vehicles import detect_vehicles
     from reid_vehicles import reid_vehicles

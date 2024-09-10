@@ -2,4 +2,3 @@ ultralytics==8.2.73
 lapx
 scikit-learn
 statsmodels
-GitPython
