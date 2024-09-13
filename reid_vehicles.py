@@ -64,8 +64,10 @@ def reid_vehicles(cam_ids, videos, output_dir="/app/data/CSVS"):
         vdf.reset_index(names=["v_id"], inplace=True)
         vdf["cam_id"] = cam_id
         vdfs.append(vdf)
+        print("vdf", vdf.shape[0])
 
     avdf = pd.concat(vdfs, ignore_index=True)
+    print("avdf", avdf.shape[0])
 
     avdf["features"] = avdf["features"].apply(
         lambda x: torch.tensor(ast.literal_eval(x)).to(device)
